@@ -1,152 +1,247 @@
-/* AniList + MegaPlay API — plain global script (works on file:// and http://) */
-const ANILIST_API = 'https://graphql.anilist.co';
-const MEGAPLAY_BASE = 'https://megaplay.buzz/stream/ani';
+/* =====================================================
+   AniStream — AniList GraphQL API + MegaPlay streaming
+   ALL queries enforce type:ANIME, isAdult:false
+   Streaming always uses /stream/ani/{anilist-id}/{ep}/{lang}
+   ===================================================== */
 
-async function queryAniList(query, variables) {
-  const res = await fetch(ANILIST_API, {
+const ANILIST_URL = 'https://graphql.anilist.co';
+const MEGAPLAY_URL = 'https://megaplay.buzz/stream/ani';
+
+/* ---------- core fetch ---------- */
+async function anilistFetch(query, variables) {
+  const res = await fetch(ANILIST_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ query, variables: variables || {} }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ query: query, variables: variables || {} }),
   });
-  if (!res.ok) throw new Error('AniList error: ' + res.status);
+  if (!res.ok) throw new Error('AniList HTTP ' + res.status);
   const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0].message);
+  if (json.errors && json.errors.length) throw new Error(json.errors[0].message);
   return json.data;
 }
 
-const MEDIA_FIELDS = `
-  id title { romaji english native }
+/* ---------- shared fields ---------- */
+const MEDIA_FRAGMENT = `
+  id
+  type
+  format
+  status
+  title { romaji english native }
   coverImage { extraLarge large medium color }
   bannerImage
   description(asHtml: false)
-  genres status episodes duration
-  averageScore popularity
-  season seasonYear format
+  genres
+  episodes
+  duration
+  averageScore
+  popularity
+  season
+  seasonYear
   studios(isMain: true) { nodes { name } }
   nextAiringEpisode { episode timeUntilAiring }
 `;
 
+/* ---------- shared page wrapper ---------- */
+function buildMediaQuery(filters, page, perPage) {
+  return `
+    query ($page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(
+          type: ANIME
+          isAdult: false
+          ${filters}
+        ) {
+          ${MEDIA_FRAGMENT}
+        }
+      }
+    }
+  `;
+}
+
+/* =====================================================
+   PUBLIC FUNCTIONS
+   ===================================================== */
+
 async function getTrending(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(sort:TRENDING_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 20 }
-  );
+  const q = buildMediaQuery('sort: TRENDING_DESC', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 20 });
   return data.Page.media;
 }
 
 async function getNewest(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(sort:START_DATE_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 20 }
-  );
+  const q = buildMediaQuery('sort: START_DATE_DESC', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 20 });
   return data.Page.media;
 }
 
 async function getPopular(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 20 }
-  );
+  const q = buildMediaQuery('sort: POPULARITY_DESC', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 20 });
   return data.Page.media;
 }
 
 async function getTopRated(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(sort:SCORE_DESC,type:ANIME,isAdult:false,averageScore_greater:70){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 20 }
-  );
+  const q = buildMediaQuery('sort: SCORE_DESC averageScore_greater: 70', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 20 });
   return data.Page.media;
 }
 
 async function getAiring(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(status:RELEASING,sort:POPULARITY_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 20 }
-  );
+  const q = buildMediaQuery('status: RELEASING sort: POPULARITY_DESC', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 20 });
   return data.Page.media;
 }
 
 async function getFinished(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(status:FINISHED,sort:END_DATE_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 10 }
-  );
+  const q = buildMediaQuery('status: FINISHED sort: END_DATE_DESC', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 10 });
   return data.Page.media;
 }
 
 async function getMovies(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(format:MOVIE,sort:POPULARITY_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 10 }
-  );
+  const q = buildMediaQuery('format: MOVIE sort: POPULARITY_DESC', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 10 });
   return data.Page.media;
 }
 
 async function getUpcoming(page, perPage) {
-  const data = await queryAniList(
-    'query($p:Int,$pp:Int){Page(page:$p,perPage:$pp){media(status:NOT_YET_RELEASED,sort:POPULARITY_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { p: page || 1, pp: perPage || 8 }
-  );
+  const q = buildMediaQuery('status: NOT_YET_RELEASED sort: POPULARITY_DESC', page, perPage);
+  const data = await anilistFetch(q, { page: page || 1, perPage: perPage || 8 });
   return data.Page.media;
 }
 
+/* search — type:ANIME always enforced via $type variable */
 async function searchAnime(search, genres, page, perPage) {
   const query = `
-    query($search:String,$genres:[String],$p:Int,$pp:Int){
-      Page(page:$p,perPage:$pp){
-        pageInfo{total currentPage lastPage hasNextPage}
-        media(search:$search,genre_in:$genres,type:ANIME,isAdult:false,sort:SEARCH_MATCH){${MEDIA_FIELDS}}
+    query ($search: String, $genres: [String], $page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(
+          type: ANIME
+          isAdult: false
+          search: $search
+          genre_in: $genres
+          sort: SEARCH_MATCH
+        ) {
+          ${MEDIA_FRAGMENT}
+        }
       }
-    }`;
-  const variables = { p: page || 1, pp: perPage || 24 };
-  if (search) variables.search = search;
-  if (genres && genres.length) variables.genres = genres;
-  const data = await queryAniList(query, variables);
+    }
+  `;
+  const variables = { page: page || 1, perPage: perPage || 24 };
+  if (search && search.trim()) variables.search = search.trim();
+  if (genres && genres.length > 0) variables.genres = genres;
+  const data = await anilistFetch(query, variables);
   return data.Page;
 }
 
+/* browse by genre — type:ANIME always enforced */
 async function getByGenre(genre, page, perPage) {
-  const data = await queryAniList(
-    'query($genre:String,$p:Int,$pp:Int){Page(page:$p,perPage:$pp){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){' + MEDIA_FIELDS + '}}}',
-    { genre: genre, p: page || 1, pp: perPage || 24 }
-  );
+  const query = `
+    query ($genre: String, $page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo { total currentPage lastPage hasNextPage }
+        media(
+          type: ANIME
+          isAdult: false
+          genre: $genre
+          sort: POPULARITY_DESC
+        ) {
+          ${MEDIA_FRAGMENT}
+        }
+      }
+    }
+  `;
+  const data = await anilistFetch(query, { genre: genre, page: page || 1, perPage: perPage || 24 });
   return data.Page;
 }
 
+/* single anime — type:ANIME enforced, never returns manga */
 async function getAnimeById(id) {
-  const data = await queryAniList(`
-    query($id:Int){Media(id:$id,type:ANIME){
-      ${MEDIA_FIELDS}
-      tags{name rank isMediaSpoiler}
-      characters(sort:ROLE,perPage:8){nodes{name{full}image{medium}}}
-      relations{edges{relationType(version:2)node{id title{romaji}coverImage{medium}type format}}}
-      recommendations(perPage:6){nodes{mediaRecommendation{id title{romaji}coverImage{large}averageScore}}}
-    }}
-  `, { id: Number(id) });
+  const query = `
+    query ($id: Int) {
+      Media(id: $id, type: ANIME) {
+        ${MEDIA_FRAGMENT}
+        tags { name rank isMediaSpoiler }
+        characters(sort: ROLE, perPage: 8) {
+          nodes { name { full } image { medium } }
+        }
+        relations {
+          edges {
+            relationType(version: 2)
+            node { id title { romaji } coverImage { medium } type format }
+          }
+        }
+        recommendations(perPage: 6) {
+          nodes {
+            mediaRecommendation { id title { romaji } coverImage { large } averageScore type }
+          }
+        }
+      }
+    }
+  `;
+  const data = await anilistFetch(query, { id: Number(id) });
+  if (!data.Media) throw new Error('Anime not found (ID: ' + id + ')');
   return data.Media;
 }
 
+/* airing schedule — filtered to anime only via airingSchedules endpoint
+   (only anime air on TV so this is inherently anime-only,
+    but we still double-check type === ANIME in the result) */
 async function getDaySchedule(dayOffset) {
   const now = new Date();
   const day = new Date(now);
   day.setDate(day.getDate() + (dayOffset || 0));
   day.setHours(0, 0, 0, 0);
-  const start = Math.floor(day.getTime() / 1000);
-  const end = start + 86399;
+  const startUnix = Math.floor(day.getTime() / 1000);
+  const endUnix = startUnix + 86399;
 
-  const data = await queryAniList(
-    'query($gt:Int,$lt:Int){Page(perPage:50){airingSchedules(airingAt_greater:$gt,airingAt_lesser:$lt,sort:TIME){id airingAt episode media{id title{romaji english}coverImage{medium}averageScore isAdult}}}}',
-    { gt: start, lt: end }
-  );
-  return (data.Page.airingSchedules || []).filter(function(s) { return !s.media || !s.media.isAdult; });
+  const query = `
+    query ($gt: Int, $lt: Int) {
+      Page(perPage: 50) {
+        airingSchedules(
+          airingAt_greater: $gt
+          airingAt_lesser: $lt
+          sort: TIME
+        ) {
+          id
+          airingAt
+          episode
+          media {
+            id
+            type
+            title { romaji english }
+            coverImage { medium }
+            averageScore
+            isAdult
+          }
+        }
+      }
+    }
+  `;
+  const data = await anilistFetch(query, { gt: startUnix, lt: endUnix });
+  return (data.Page.airingSchedules || []).filter(function (s) {
+    return s.media && s.media.type === 'ANIME' && !s.media.isAdult;
+  });
 }
 
+/* =====================================================
+   STREAMING — always AniList ID + episode number
+   URL format: megaplay.buzz/stream/ani/{anilist-id}/{ep}/{sub|dub}
+   ===================================================== */
 function getStreamUrl(anilistId, episode, lang) {
-  return MEGAPLAY_BASE + '/' + anilistId + '/' + episode + '/' + (lang || 'sub');
+  return MEGAPLAY_URL + '/' + anilistId + '/' + episode + '/' + (lang || 'sub');
 }
 
+/* =====================================================
+   HELPERS
+   ===================================================== */
 function getTitle(media) {
-  return media.title.english || media.title.romaji || media.title.native || 'Unknown';
+  return (media.title && (media.title.english || media.title.romaji || media.title.native)) || 'Unknown';
 }
 
 function formatScore(score) {
@@ -155,15 +250,18 @@ function formatScore(score) {
 }
 
 function formatStatus(status) {
-  var map = {
-    RELEASING: 'Airing', FINISHED: 'Finished',
-    NOT_YET_RELEASED: 'Upcoming', CANCELLED: 'Cancelled', HIATUS: 'On Hiatus',
+  const map = {
+    RELEASING: 'Airing',
+    FINISHED: 'Finished',
+    NOT_YET_RELEASED: 'Upcoming',
+    CANCELLED: 'Cancelled',
+    HIATUS: 'On Hiatus',
   };
-  return map[status] || status;
+  return map[status] || (status || 'Unknown');
 }
 
-var GENRES = [
-  'Action','Adventure','Comedy','Drama','Fantasy',
-  'Horror','Mecha','Music','Mystery','Psychological',
-  'Romance','Sci-Fi','Slice of Life','Sports','Supernatural','Thriller',
+const GENRES = [
+  'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy',
+  'Horror', 'Mecha', 'Music', 'Mystery', 'Psychological',
+  'Romance', 'Sci-Fi', 'Slice of Life', 'Sports', 'Supernatural', 'Thriller',
 ];
