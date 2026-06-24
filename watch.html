@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Watch — AniStream</title>
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
 </head>
 <body>
@@ -12,7 +16,7 @@
 <nav class="navbar">
   <a class="nav-logo" href="index.html">ANISTREAM<em>.</em></a>
   <div class="nav-search-wrap">
-    <span class="nav-s-icon">⌕</span>
+    <span class="nav-s-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
     <input type="text" id="navSearch" placeholder="Search Anime" autocomplete="off" />
   </div>
   <div class="nav-right">
@@ -20,27 +24,23 @@
       <a href="index.html">Home</a>
       <a href="search.html">Browse</a>
     </div>
+    <a class="nav-icon-btn" href="search.html" title="Browse All"><i class="fa-solid fa-border-all"></i></a>
   </div>
 </nav>
 
-<main class="main" id="mainContent">
+<main class="main" id="mainContent" style="padding-bottom:0">
   <div class="loading-wrap" style="min-height:80vh">
     <div class="spinner"></div>
     <p class="loading-text">Loading player...</p>
   </div>
 </main>
 
-<footer class="footer">
-  <p>Built with ❤️ using <span>AniStream</span> · Data from AniList · Streaming via MegaPlay</p>
-</footer>
-
 <script src="js/api.js"></script>
 <script src="js/watch.js"></script>
 <script>
-  document.getElementById('navSearch').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.value.trim()) {
-      window.location.href = `search.html?q=${encodeURIComponent(e.target.value.trim())}`;
-    }
+  document.getElementById('navSearch').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.value.trim())
+      location.href = 'search.html?q=' + encodeURIComponent(e.target.value.trim());
   });
 </script>
 </body>

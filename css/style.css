@@ -615,6 +615,204 @@ input,textarea{font:inherit}
 .btn-ghost{color:var(--text-muted);padding:7px 12px;border-radius:7px}
 .btn-ghost:hover{background:var(--bg3);color:var(--text)}
 
+/* ===== WATCH PAGE v2 — Miruro layout ===== */
+.wp-wrap{
+  display:grid;
+  grid-template-columns:1fr 380px;
+  min-height:calc(100vh - var(--nav-h));
+  align-items:start;
+}
+
+/* left column */
+.wp-main{
+  border-right:1px solid var(--border);
+  min-width:0;
+}
+
+/* title bar */
+.wp-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px;background:var(--bg2);border-bottom:1px solid var(--border);
+  gap:12px;
+}
+.wp-bar-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.wp-ep-num{
+  font-size:.72rem;font-weight:700;color:var(--accent);
+  background:rgba(181,168,255,.1);border:1px solid rgba(181,168,255,.2);
+  border-radius:5px;padding:3px 8px;white-space:nowrap;flex-shrink:0;
+}
+.wp-ep-name{
+  font-size:.9rem;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.wp-bar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.wp-lang-seg{
+  display:flex;background:var(--bg3);
+  border:1px solid var(--border);border-radius:7px;overflow:hidden;
+}
+.wp-lbtn{
+  padding:5px 14px;font-size:.75rem;font-weight:600;
+  color:var(--text-muted);transition:all .15s;
+}
+.wp-lbtn.on{background:var(--accent);color:#0b0b0f}
+
+/* player */
+.wp-player{background:#000;aspect-ratio:16/9;width:100%}
+.wp-player iframe{display:block;width:100%;height:100%;border:none}
+
+/* info row */
+.wp-info{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);
+}
+.wp-pills{display:flex;gap:7px;flex-wrap:wrap}
+.wp-pill{
+  display:flex;align-items:center;gap:5px;
+  font-size:.72rem;color:var(--text-muted);
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:3px 9px;
+}
+.wp-acts{display:flex;gap:8px;align-items:center}
+.wp-act{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 13px;border-radius:7px;font-size:.76rem;font-weight:500;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text-muted);transition:all .15s;cursor:pointer;
+  text-decoration:none;
+}
+.wp-act:hover{border-color:var(--border-h);color:var(--text)}
+
+/* description */
+.wp-desc{
+  padding:14px 16px;background:var(--bg2);border-bottom:1px solid var(--border);
+  font-size:.82rem;color:var(--text-muted);line-height:1.68;
+}
+
+/* anime info card */
+.wp-card{
+  display:flex;gap:20px;padding:18px 16px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+}
+.wp-poster{
+  width:110px;flex-shrink:0;border-radius:8px;
+  aspect-ratio:2/3;object-fit:cover;cursor:pointer;
+  transition:opacity .15s;
+}
+.wp-poster:hover{opacity:.85}
+.wp-card-info{flex:1;min-width:0}
+.wp-card-title{
+  font-size:1.05rem;font-weight:700;margin-bottom:4px;
+  cursor:pointer;transition:color .15s;
+}
+.wp-card-title:hover{color:var(--accent)}
+.wp-card-native{font-size:.78rem;color:var(--text-muted);margin-bottom:10px}
+.wp-card-genres{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.wp-genre{
+  padding:2px 10px;border-radius:20px;font-size:.7rem;font-weight:600;
+  background:rgba(181,168,255,.08);border:1px solid rgba(181,168,255,.18);color:var(--accent);
+}
+.wp-card-desc{
+  font-size:.78rem;color:var(--text-muted);line-height:1.65;margin-bottom:12px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+}
+.wp-dg{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;
+  font-size:.75rem;
+}
+.wp-dr{display:flex;gap:6px;color:var(--text-muted)}
+.wp-dr strong{color:var(--text);font-weight:600}
+
+/* ── RIGHT SIDEBAR ── */
+.wp-sidebar{
+  position:sticky;top:var(--nav-h);
+  height:calc(100vh - var(--nav-h));
+  display:flex;flex-direction:column;
+  background:var(--bg2);overflow:hidden;
+}
+.wp-sb-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.wp-sb-label{font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:7px}
+.wp-sb-label i{color:var(--accent);font-size:.78rem}
+.wp-sb-count{
+  font-size:.68rem;font-weight:600;color:var(--text-muted);
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:5px;padding:2px 7px;
+}
+.wp-ranges{
+  display:flex;gap:6px;flex-wrap:wrap;
+  padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.wep-range{
+  padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:600;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text-muted);transition:all .15s;cursor:pointer;
+}
+.wep-range:hover{border-color:var(--border-h);color:var(--text)}
+.wep-range.active{background:rgba(181,168,255,.1);border-color:rgba(181,168,255,.3);color:var(--accent)}
+.wp-filter-wrap{
+  position:relative;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.wp-fi{
+  position:absolute;left:21px;top:50%;transform:translateY(-50%);
+  font-size:.72rem;color:var(--text-muted);pointer-events:none;
+}
+.wp-filter{
+  width:100%;padding:7px 12px 7px 30px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);font-size:.78rem;outline:none;
+  transition:border-color .15s;font-family:inherit;
+}
+.wp-filter:focus{border-color:var(--border-h)}
+.wp-filter::placeholder{color:var(--text-muted)}
+.wp-eplist{overflow-y:auto;flex:1}
+.wp-eplist::-webkit-scrollbar{width:3px}
+.wp-eplist::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px}
+
+/* episode cards */
+.wep-card{
+  display:flex;gap:12px;padding:10px 12px;
+  border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background .15s;
+}
+.wep-card:hover{background:rgba(255,255,255,.03)}
+.wep-card.active{background:rgba(181,168,255,.06)}
+.wep-card.active .wep-title{color:var(--accent)}
+.wep-thumb{
+  width:128px;flex-shrink:0;
+  aspect-ratio:16/9;border-radius:6px;overflow:hidden;
+  position:relative;background:var(--bg3);
+}
+.wep-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.wep-card:hover .wep-thumb img{transform:scale(1.04)}
+.wep-badge{
+  position:absolute;bottom:5px;left:5px;
+  background:rgba(0,0,0,.82);color:#fff;
+  font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:4px;
+  letter-spacing:.02em;
+}
+.wep-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.wep-title{
+  font-size:.76rem;font-weight:600;line-height:1.3;color:var(--text);
+  transition:color .15s;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.wep-meta{font-size:.65rem;color:var(--text-muted);display:flex;align-items:center;gap:5px}
+
+/* watch page responsive */
+@media(max-width:900px){
+  .wp-wrap{grid-template-columns:1fr}
+  .wp-sidebar{position:static;height:auto;max-height:420px;border-top:1px solid var(--border)}
+}
+@media(max-width:600px){
+  .wp-card{flex-direction:column}
+  .wp-poster{width:100%;aspect-ratio:16/7;border-radius:8px}
+  .wp-dg{grid-template-columns:1fr}
+  .wep-thumb{width:100px}
+}
+
 /* ===== SECTION (search page) ===== */
 .section{padding:20px 20px}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
