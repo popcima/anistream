@@ -29,6 +29,7 @@ const MEDIA_FRAGMENT = `
   type
   format
   status
+  isAdult
   title { romaji english native }
   coverImage { extraLarge large medium color }
   bannerImage
@@ -40,8 +41,10 @@ const MEDIA_FRAGMENT = `
   popularity
   season
   seasonYear
+  startDate { year month day }
+  endDate { year month day }
   studios(isMain: true) { nodes { name } }
-  nextAiringEpisode { episode timeUntilAiring }
+  nextAiringEpisode { episode timeUntilAiring airingAt }
 `;
 
 /* ---------- shared page wrapper ---------- */
@@ -168,6 +171,10 @@ async function getAnimeById(id) {
       Media(id: $id, type: ANIME) {
         ${MEDIA_FRAGMENT}
         tags { name rank isMediaSpoiler }
+        airingSchedule(notYetAired: false) {
+          nodes { episode airingAt }
+        }
+        externalLinks { site url type }
         characters(sort: ROLE, perPage: 8) {
           nodes { name { full } image { medium } }
         }
@@ -177,9 +184,9 @@ async function getAnimeById(id) {
             node { id title { romaji } coverImage { medium } type format }
           }
         }
-        recommendations(perPage: 6) {
+        recommendations(perPage: 8) {
           nodes {
-            mediaRecommendation { id title { romaji } coverImage { large } averageScore type }
+            mediaRecommendation { id title { romaji english } coverImage { large } averageScore type }
           }
         }
       }

@@ -23,7 +23,25 @@ function fmtDate(d) {
 }
 
 /* ── Episode list helpers ── */
+var epDates = {}; // episode → formatted date string
+
+function tsToShort(ts) {
+  if (!ts) return '';
+  var d = new Date(ts * 1000);
+  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return M[d.getMonth()] + ' ' + String(d.getDate()).padStart(2,'0') + ', ' + d.getFullYear();
+}
+
+function buildEpDatesMap(airingSchedule) {
+  epDates = {};
+  if (!airingSchedule || !airingSchedule.nodes) return;
+  airingSchedule.nodes.forEach(function(n) {
+    epDates[n.episode] = tsToShort(n.airingAt);
+  });
+}
+
 function buildEpCard(n, total, active, poster) {
+  var date = epDates[n] || '';
   return (
     '<div class="wep-card'+(active?' active':'')+'" id="sep-'+n+'" data-ep="'+n+'">' +
       '<div class="wep-thumb">' +
@@ -32,10 +50,47 @@ function buildEpCard(n, total, active, poster) {
       '</div>' +
       '<div class="wep-body">' +
         '<div class="wep-title">Episode '+n+'</div>' +
-        (total ? '<div class="wep-meta"><i class="fa-solid fa-film"></i> '+n+' / '+total+'</div>' : '') +
+        '<div class="wep-meta">' +
+          (date ? '<i class="fa-solid fa-calendar-days"></i> '+date : '<i class="fa-solid fa-film"></i> '+n+(total?' / '+total:'')) +
+        '</div>' +
       '</div>' +
     '</div>'
   );
+}
+
+/* ── Recommendations ── */
+function buildRecs(recs) {
+  if (!recs || !recs.nodes) return '';
+  var items = recs.nodes.filter(function(r) {
+    return r.mediaRecommendation && r.mediaRecommendation.type === 'ANIME';
+  });
+  if (!items.length) return '';
+  var cards = items.map(function(r) {
+    var m   = r.mediaRecommendation;
+    var t   = (m.title && (m.title.english || m.title.romaji)) || 'Unknown';
+    var img = m.coverImage && m.coverImage.large;
+    var sc  = m.averageScore ? (m.averageScore/10).toFixed(1) : '';
+    return '<div class="wp-rec-card" onclick="location.href=\'anime.html?id='+m.id+'\'">' +
+      '<div class="wp-rec-thumb">' +
+        (img ? '<img src="'+escH(img)+'" alt="'+escH(t)+'" loading="lazy"/>' : '') +
+        (sc ? '<span class="wp-rec-score"><i class="fa-solid fa-star"></i> '+sc+'</span>' : '') +
+      '</div>' +
+      '<div class="wp-rec-title">'+escH(t)+'</div>' +
+    '</div>';
+  }).join('');
+  return '<div class="wp-recs"><div class="wp-recs-hd"><i class="fa-solid fa-heart-pulse"></i> Recommended</div><div class="wp-recs-row">'+cards+'</div></div>';
+}
+
+/* ── External links ── */
+function buildExtLinks(links) {
+  if (!links || !links.length) return '';
+  var streaming = links.filter(function(l) { return l.type === 'STREAMING'; }).slice(0, 3);
+  if (!streaming.length) return '';
+  var pills = streaming.map(function(l) {
+    return '<a class="wp-extlink" href="'+escH(l.url)+'" target="_blank" rel="noopener">'+
+      '<i class="fa-solid fa-play"></i> '+escH(l.site)+'</a>';
+  }).join('');
+  return '<div class="wp-extlinks">'+pills+'</div>';
 }
 
 function buildRangeBtns(total, chunkSize) {
@@ -64,6 +119,8 @@ function buildEpListHtml(total, poster, start, end) {
 function renderWatch(media) {
   var title   = getTitle(media);
   document.title = 'Ep '+watchEp+' — '+title+' — AniStream';
+
+  buildEpDatesMap(media.airingSchedule);
 
   var poster  = media.coverImage.extraLarge || media.coverImage.large;
   var total   = media.episodes || (media.nextAiringEpisode ? media.nextAiringEpisode.episode-1 : null);
@@ -123,6 +180,9 @@ function renderWatch(media) {
       /* description */
       (desc?'<div class="wp-desc">'+escH(desc.slice(0,320))+(desc.length>320?'…':'')+'</div>':'')+
 
+      /* external streaming links */
+      buildExtLinks(media.externalLinks)+
+
       /* anime info card */
       '<div class="wp-card">'+
         '<img class="wp-poster" src="'+escH(poster)+'" alt="'+escH(title)+'" onclick="location.href=\'anime.html?id='+watchId+'\'">'+
@@ -145,6 +205,9 @@ function renderWatch(media) {
           '</div>'+
         '</div>'+
       '</div>'+
+
+      /* recommendations */
+      buildRecs(media.recommendations)+
 
     '</div>'+/* /wp-main */
 
