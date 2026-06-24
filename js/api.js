@@ -7,8 +7,39 @@
 const ANILIST_URL = 'https://graphql.anilist.co';
 const MEGAPLAY_URL = 'https://megaplay.buzz/stream/ani';
 
+const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const _reqTimes = [];
+
+function _cacheKey(query, variables) {
+  const raw = JSON.stringify({ q: query.replace(/\s+/g, ' ').trim(), v: variables || {} });
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) h = Math.imul(h * 33 ^ raw.charCodeAt(i), 1);
+  return 'al:' + (h >>> 0).toString(36);
+}
+
 /* ---------- core fetch ---------- */
 async function anilistFetch(query, variables) {
+  const key = _cacheKey(query, variables);
+
+  // return cached response if still fresh
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const entry = JSON.parse(raw);
+      if (Date.now() - entry.ts < _CACHE_TTL) return entry.data;
+      sessionStorage.removeItem(key);
+    }
+  } catch (e) {}
+
+  // rate limit: stay under 85 req / 60s
+  const cutoff = Date.now() - 60000;
+  while (_reqTimes.length && _reqTimes[0] < cutoff) _reqTimes.shift();
+  if (_reqTimes.length >= 85) {
+    await new Promise(function (r) { setTimeout(r, 60000 - (Date.now() - _reqTimes[0]) + 200); });
+    _reqTimes.shift();
+  }
+  _reqTimes.push(Date.now());
+
   const res = await fetch(ANILIST_URL, {
     method: 'POST',
     headers: {
@@ -20,6 +51,8 @@ async function anilistFetch(query, variables) {
   if (!res.ok) throw new Error('AniList HTTP ' + res.status);
   const json = await res.json();
   if (json.errors && json.errors.length) throw new Error(json.errors[0].message);
+
+  try { sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: json.data })); } catch (e) {}
   return json.data;
 }
 
