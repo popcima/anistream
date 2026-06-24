@@ -33,7 +33,7 @@ function renderRecs(recs) {
       var m = n.mediaRecommendation;
       var t = m.title ? (m.title.english || m.title.romaji || '') : '';
       var img = m.coverImage ? (m.coverImage.large || m.coverImage.medium || '') : '';
-      return '<div class="anime-card" onclick="location.href=\'anime.html?id=' + m.id + '\'">' +
+      return '<div class="anime-card" onclick="location.href=\'watch.html?id=' + m.id + '&ep=1&lang=sub\'">' +
         '<div class="card-img-wrap"><img src="' + escH(img) + '" alt="' + escH(t) + '" loading="lazy" />' +
         '<div class="card-score">★ ' + formatScore(m.averageScore) + '</div></div>' +
         '<div class="card-info"><div class="card-title">' + escH(t) + '</div></div>' +
@@ -45,9 +45,62 @@ function renderRecs(recs) {
   '</section>';
 }
 
+function setMetaAttr(id, attr, val) {
+  var el = document.getElementById(id);
+  if (el) el.setAttribute(attr, val);
+}
+
 function renderPage(media) {
   var title = getTitle(media);
-  document.title = title + ' — AniStream';
+  document.title = title + ' — HEBiANiME';
+
+  var rawDesc = (media.description || '').replace(/<[^>]*>/g, '').trim();
+  var metaDesc = 'Watch ' + title + ' on HEBiANiME. ' + rawDesc.slice(0, 120) + (rawDesc.length > 120 ? '…' : '');
+  var cover = (media.coverImage && (media.coverImage.extraLarge || media.coverImage.large)) || '';
+  var canonUrl = 'https://hebianime.com/anime.html?id=' + media.id;
+
+  setMetaAttr('meta-desc', 'content', metaDesc);
+  setMetaAttr('canonical', 'href', canonUrl);
+  setMetaAttr('og-title', 'content', title + ' — Watch on HEBiANiME');
+  setMetaAttr('og-desc', 'content', metaDesc);
+  setMetaAttr('og-image', 'content', cover);
+  setMetaAttr('og-url', 'content', canonUrl);
+  setMetaAttr('tw-title', 'content', title + ' — Watch on HEBiANiME');
+  setMetaAttr('tw-desc', 'content', metaDesc);
+  setMetaAttr('tw-image', 'content', cover);
+
+  var ldEl = document.createElement('script');
+  ldEl.type = 'application/ld+json';
+  var ldObj = {
+    '@context': 'https://schema.org',
+    '@type': 'TVSeries',
+    'name': title,
+    'description': rawDesc.slice(0, 300),
+    'image': cover,
+    'url': canonUrl,
+    'genre': media.genres || []
+  };
+  if (media.episodes) ldObj.numberOfEpisodes = media.episodes;
+  if (media.averageScore) ldObj.aggregateRating = {
+    '@type': 'AggregateRating',
+    'ratingValue': (media.averageScore / 10).toFixed(1),
+    'bestRating': '10',
+    'ratingCount': media.popularity || 1
+  };
+  ldEl.text = JSON.stringify(ldObj);
+  document.head.appendChild(ldEl);
+
+  var bcEl = document.createElement('script');
+  bcEl.type = 'application/ld+json';
+  bcEl.text = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': [
+      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://hebianime.com/' },
+      { '@type': 'ListItem', 'position': 2, 'name': title, 'item': canonUrl }
+    ]
+  });
+  document.head.appendChild(bcEl);
 
   var score = formatScore(media.averageScore);
   var status = formatStatus(media.status);
@@ -60,10 +113,10 @@ function renderPage(media) {
   var statusCls = 'status-' + (media.status || 'FINISHED');
 
   main.innerHTML =
-    '<div class="anime-banner"><img src="' + escH(banner) + '" alt="' + escH(title) + '" /></div>' +
+    '<div class="anime-banner"><img src="' + escH(banner) + '" alt="' + escH(title) + '" loading="eager" fetchpriority="high" /></div>' +
     '<div class="anime-detail">' +
       '<div class="anime-poster">' +
-        '<img src="' + escH(poster) + '" alt="' + escH(title) + '" />' +
+        '<img src="' + escH(poster) + '" alt="' + escH(title) + '" loading="eager" />' +
         '<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">' +
           '<a class="btn btn-primary" href="watch.html?id=' + media.id + '&ep=1&lang=sub">▶ Watch EP 1</a>' +
           '<a class="btn btn-secondary" href="watch.html?id=' + media.id + '&ep=1&lang=dub">🎙 Watch Dub</a>' +

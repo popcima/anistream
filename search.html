@@ -3,59 +3,136 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Browse Anime — AniStream</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
-</head>
-<body>
+  <title>Browse Anime — HEBiANiME</title>
 
-<nav class="navbar">
-  <a class="nav-logo" href="index.html">ANISTREAM<em>.</em></a>
+  <!-- SEO Core -->
+  <meta id="meta-desc" name="description" content="Browse thousands of anime on HEBiANiME. Search by title, filter by genre, season, or year. Find subbed and dubbed anime in HD." />
+  <meta name="keywords" content="browse anime, anime list, anime search, anime genres, anime by season, HEBiANiME" />
+  <meta name="robots" content="index, follow, max-snippet:-1" />
+  <meta name="author" content="HEBiANiME" />
+  <link id="canonical" rel="canonical" href="https://hebianime.com/search.html" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="HEBiANiME" />
+  <meta id="og-title" property="og:title" content="Browse Anime — HEBiANiME" />
+  <meta id="og-desc" property="og:description" content="Browse thousands of anime on HEBiANiME. Filter by genre, season, and year." />
+  <meta property="og:url" content="https://hebianime.com/search.html" />
+  <meta property="og:image" content="https://hebianime.com/og-image.jpg" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Browse Anime — HEBiANiME" />
+  <meta name="twitter:description" content="Browse thousands of anime on HEBiANiME. Filter by genre, season, and year." />
+  <meta name="twitter:image" content="https://hebianime.com/og-image.jpg" />
+
+  <!-- PWA + App -->
+  <meta name="theme-color" content="#0B0B10" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="HEBiANiME" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://graphql.anilist.co" />
+  <link rel="preconnect" href="https://s4.anilist.co" crossorigin />
+  <link rel="dns-prefetch" href="https://graphql.anilist.co" />
+  <link rel="dns-prefetch" href="https://s4.anilist.co" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@100..900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 68 68'><circle cx='34' cy='34' r='32' fill='%23090910'/><circle cx='34' cy='34' r='32' fill='none' stroke='%23BB0000' stroke-width='1.5'/><path d='M34,62C14,57 12,42 26,35C40,28 54,18 44,8' fill='none' stroke='%23CC1111' stroke-width='5.5' stroke-linecap='round'/><ellipse cx='42' cy='8' rx='7' ry='4.5' fill='%23EE2222' transform='rotate(-48 42 8)'/><circle cx='45.5' cy='6' r='1.8' fill='%23090910'/></svg>" />
+</head>
+<body class="home-page search-page">
+
+<nav class="navbar watch-navbar">
+  <button class="watch-nav-square watch-menu-btn" type="button" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <a class="watch-wordmark" href="index.html">HEBiANiME</a>
   <div class="nav-search-wrap">
-    <span class="nav-s-icon">⌕</span>
+    <span class="nav-s-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
     <input type="text" id="navSearch" placeholder="Search Anime" autocomplete="off" />
+    <span class="watch-search-key">⌘</span>
   </div>
-  <div class="nav-right">
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="search.html" class="active">Browse</a>
-    </div>
+  <button class="watch-nav-square watch-search-submit" id="navSearchBtn" type="button" aria-label="Search">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+  <a class="watch-nav-square watch-shuffle-btn" href="search.html?sort=TRENDING_DESC" aria-label="Discover anime">
+    <i class="fa-solid fa-shuffle"></i>
+  </a>
+  <div class="watch-nav-spacer"></div>
+  <div class="watch-mobile-actions">
+    <a class="watch-nav-square" href="search.html" aria-label="Browse anime">
+      <i class="fa-solid fa-border-all"></i>
+    </a>
   </div>
 </nav>
 
-<main class="main">
-  <div class="search-hero">
-    <h1>Discover Anime</h1>
-    <div class="search-bar">
-      <span class="s-icon">🔍</span>
+<main class="main search-main">
+  <div class="search-header">
+    <div class="search-input-wrap">
+      <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" id="searchInput" placeholder="Search by title, genre, studio..." autocomplete="off" />
     </div>
-    <div class="genre-chips" id="genreChips"></div>
   </div>
 
-  <div class="section">
-    <div id="resultsHeader" class="search-results-header" style="margin-bottom:16px"></div>
-    <div class="anime-grid" id="resultsGrid">
-      <div class="loading-wrap" style="grid-column:1/-1"><div class="spinner"></div><p class="loading-text">Loading anime...</p></div>
-    </div>
-    <div style="text-align:center;margin-top:32px" id="loadMoreWrap" hidden>
-      <button class="btn btn-secondary" id="loadMoreBtn">Load More</button>
+  <section class="home-genre-shell">
+    <button class="home-genre-arrow" id="genreL" type="button" aria-label="Previous genres"><i class="fa-solid fa-circle-chevron-left"></i></button>
+    <div class="home-genre-row" id="genreRow"></div>
+    <button class="home-genre-arrow" id="genreR" type="button" aria-label="Next genres"><i class="fa-solid fa-circle-chevron-right"></i></button>
+  </section>
+
+  <div class="search-results-area">
+    <div id="resultsHeader" class="search-results-header"></div>
+    <div class="home-anime-grid" id="resultsGrid"></div>
+    <div id="loadMoreWrap" hidden style="text-align:center;margin-top:28px">
+      <button class="search-load-more" id="loadMoreBtn" type="button">Load More</button>
     </div>
   </div>
 </main>
 
-<footer class="footer">
-  <p>Built with ❤️ using <span>AniStream</span> · Data from AniList · Streaming via MegaPlay</p>
+<footer class="home-footer">
+  <div class="home-footer-top">
+    <div class="home-footer-brand">
+      <div class="home-footer-mark">A</div>
+      <p>This website does not retain any files on its server. Rather, it solely provides links to media content hosted by third-party services.</p>
+    </div>
+    <nav>
+      <a href="search.html?sort=TRENDING_DESC">Trending</a>
+      <a href="search.html">Search</a>
+      <a href="search.html?status=RELEASING">Schedule</a>
+      <a href="search.html">Domains</a>
+      <a href="search.html">Status</a>
+      <a href="#">Donate &lt;3</a>
+    </nav>
+  </div>
+  <div class="home-footer-bottom">
+    <span>© 2026 <u>hebianime.com</u> | Website by <strong>HEBiANiME</strong> <b>v1.10.6</b></span>
+    <div class="home-footer-actions">
+      <button type="button"><i class="fa-solid fa-desktop"></i></button>
+      <button type="button"><i class="fa-solid fa-sun"></i></button>
+      <button class="active" type="button"><i class="fa-solid fa-headphones"></i></button>
+      <button type="button"><i class="fa-solid fa-a"></i></button>
+      <button type="button"><i class="fa-solid fa-mug-hot"></i></button>
+      <a href="#" aria-label="Reddit"><i class="fa-brands fa-reddit"></i></a>
+      <a href="#" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+      <a href="#" aria-label="X"><i class="fa-brands fa-x-twitter"></i></a>
+    </div>
+  </div>
 </footer>
 
 <script src="js/api.js"></script>
+<script src="js/nav.js"></script>
 <script src="js/search.js"></script>
 <script>
-  document.getElementById('navSearch').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.value.trim()) {
-      window.location.href = `search.html?q=${encodeURIComponent(e.target.value.trim())}`;
-    }
-  });
+  const ns = document.getElementById('navSearch');
+  const go = () => { if (ns.value.trim()) location.href = 'search.html?q=' + encodeURIComponent(ns.value.trim()); };
+  ns.addEventListener('keydown', e => e.key === 'Enter' && go());
+  document.getElementById('navSearchBtn').addEventListener('click', go);
 </script>
 </body>
 </html>

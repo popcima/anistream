@@ -1,243 +1,244 @@
-/* Home page logic — no ES modules */
-var heroItems = [], heroIdx = 0, heroTimer = null;
+/* HEBiANiME homepage — Miruro-inspired catalog */
+var heroItems = [];
+var heroIdx = 0;
+var heroTimer = null;
+var currentTab = 'trending';
+var currentPage = 1;
+var heroColors = ['#e49350','#e49343','#aec9e4','#e4a150','#e49335','#1abbd6','#e4c928','#1ae4f1','#43aef1','#e4d6ae'];
 
-function escH(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function escH(value) {
+  return (value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function dotCls(status) {
-  if (status === 'RELEASING') return 'g';
-  if (status === 'NOT_YET_RELEASED') return 'o';
-  return 'd';
+function stripHtml(value) {
+  return (value || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
-/* ─── HERO ─────────────────────────────────────────── */
-function buildHeroSlide(media, idx) {
-  var title  = getTitle(media);
-  var bg     = media.bannerImage || media.coverImage.extraLarge || media.coverImage.large;
-  var score  = formatScore(media.averageScore);
-  var ep     = media.episodes || (media.nextAiringEpisode ? (media.nextAiringEpisode.episode - 1) + '+' : '');
-  var studio = media.studios && media.studios.nodes[0] ? media.studios.nodes[0].name : '';
+function dotClass(status) {
+  if (status === 'RELEASING') return 'ongoing';
+  if (status === 'NOT_YET_RELEASED') return 'upcoming';
+  return 'finished';
+}
+
+function mediaEpisodes(media) {
+  if (media.nextAiringEpisode) return Math.max(0, media.nextAiringEpisode.episode - 1) + (media.episodes ? ' / ' + media.episodes : '');
+  return media.episodes || '';
+}
+
+function formatCountdown(seconds) {
+  if (!seconds || seconds <= 0) return '';
+  var days = Math.floor(seconds / 86400);
+  var hours = Math.floor((seconds % 86400) / 3600);
+  return (days ? days + 'D ' : '') + hours + 'H';
+}
+
+function heroSlide(media, index) {
+  var title = getTitle(media);
+  var image = media.bannerImage || media.coverImage.extraLarge || media.coverImage.large;
+  var description = stripHtml(media.description).slice(0, 260);
   var genres = (media.genres || []).slice(0, 3);
-  var desc   = (media.description || '').replace(/<[^>]*>/g, '').slice(0, 200);
-  var format = (media.format || 'TV').replace(/_/g, ' ');
+  var studio = media.studios && media.studios.nodes[0] ? media.studios.nodes[0].name : '';
+  var episodes = mediaEpisodes(media);
+  var score = media.averageScore || '';
+  var countdown = media.nextAiringEpisode ? formatCountdown(media.nextAiringEpisode.timeUntilAiring) : '';
+  var color = heroColors[index % heroColors.length];
 
-  var div = document.createElement('div');
-  div.className = 'hero-slide' + (idx === 0 ? ' active' : '');
-  div.innerHTML =
-    '<img src="' + escH(bg) + '" alt="' + escH(title) + '" loading="' + (idx === 0 ? 'eager' : 'lazy') + '" />' +
-    '<div class="hero-overlay"></div>' +
-    '<div class="hero-content">' +
-      '<div class="hero-info-row">' +
-        '<span>' + format + '</span>' +
-        (ep ? '<span><i class="fa-solid fa-tv"></i> ' + ep + ' eps</span>' : '') +
-        (score !== 'N/A' ? '<span><i class="fa-solid fa-star"></i> ' + score + '</span>' : '') +
-        (media.duration ? '<span><i class="fa-regular fa-clock"></i> ' + media.duration + 'm</span>' : '') +
+  return (
+    '<article class="home-hero-slide' + (index === 0 ? ' active' : '') + '" style="--hero-accent:' + color + '">' +
+      '<img src="' + escH(image) + '" alt="' + escH(title) + '" loading="' + (index === 0 ? 'eager' : 'lazy') + '">' +
+      '<div class="home-hero-overlay"></div>' +
+      (media.nextAiringEpisode ? '<div class="home-hero-countdown"><i class="fa-regular fa-clock"></i> EP ' + media.nextAiringEpisode.episode + (countdown ? ' ' + countdown : '') + '</div>' : '') +
+      '<div class="home-hero-copy">' +
+        '<div class="home-hero-meta">' +
+          '<span>' + escH((media.format || 'TV').replace(/_/g, ' ')) + '</span>' +
+          (episodes ? '<span><i class="fa-solid fa-closed-captioning"></i> ' + episodes + '</span>' : '') +
+          (score ? '<span><i class="fa-regular fa-star"></i> ' + score + '</span>' : '') +
+          (media.duration ? '<span><i class="fa-regular fa-clock"></i> ' + media.duration + ' mins</span>' : '') +
+        '</div>' +
+        '<h2>' + escH(title) + '</h2>' +
+        '<div class="home-hero-tags">' +
+          (genres.length ? '<span>' + genres.map(escH).join(' · ') + '</span>' : '') +
+          (studio ? '<span>' + escH(studio) + '</span>' : '') +
+        '</div>' +
+        (description ? '<p>' + escH(description) + (description.length >= 260 ? '…' : '') + '</p>' : '') +
       '</div>' +
-      '<div class="hero-title">' + escH(title) + '</div>' +
-      '<div class="hero-tags">' +
-        genres.map(function(g) { return '<span>' + escH(g) + '</span>'; }).join('') +
-        (studio ? '<span>' + escH(studio) + '</span>' : '') +
+      '<div class="home-hero-actions">' +
+        '<a href="watch.html?id=' + media.id + '&ep=1&lang=sub"><i class="fa-solid fa-circle-info"></i> DETAILS</a>' +
+        '<a href="watch.html?id=' + media.id + '&ep=1&lang=sub"><i class="fa-solid fa-circle-play"></i> WATCH NOW</a>' +
       '</div>' +
-      (desc ? '<p class="hero-desc">' + escH(desc) + (desc.length >= 200 ? '…' : '') + '</p>' : '') +
-      '<div class="hero-btns">' +
-        '<a class="hero-btn hero-btn-watch" href="watch.html?id=' + media.id + '&ep=1&lang=sub"><i class="fa-solid fa-play"></i> Watch Now</a>' +
-        '<a class="hero-btn" href="anime.html?id=' + media.id + '"><i class="fa-solid fa-circle-info"></i> Details</a>' +
-      '</div>' +
-    '</div>';
-  return div;
+    '</article>'
+  );
 }
 
-function showHeroSlide(idx) {
-  heroIdx = ((idx % heroItems.length) + heroItems.length) % heroItems.length;
-  document.querySelectorAll('.hero-slide').forEach(function(s, i) { s.classList.toggle('active', i === heroIdx); });
-  document.querySelectorAll('.hero-dot').forEach(function(d, i) { d.classList.toggle('active', i === heroIdx); });
+function showHeroSlide(index) {
+  if (!heroItems.length) return;
+  heroIdx = ((index % heroItems.length) + heroItems.length) % heroItems.length;
+  document.querySelectorAll('.home-hero-slide').forEach(function (slide, slideIndex) {
+    slide.classList.toggle('active', slideIndex === heroIdx);
+  });
+  document.getElementById('heroIndex').textContent = heroIdx + 1;
 }
 
 function startHeroTimer() {
   clearInterval(heroTimer);
-  heroTimer = setInterval(function() { showHeroSlide(heroIdx + 1); }, 7000);
+  heroTimer = setInterval(function () { showHeroSlide(heroIdx + 1); }, 8000);
 }
 
 function initHero(items) {
-  heroItems = items.filter(function(m) { return m.bannerImage || m.coverImage.extraLarge; }).slice(0, 11);
+  heroItems = items.filter(function (media) {
+    return media.bannerImage || media.coverImage.extraLarge;
+  }).slice(0, 12);
   if (!heroItems.length) return;
-  var container = document.getElementById('heroSlides');
-  heroItems.forEach(function(m, i) { container.appendChild(buildHeroSlide(m, i)); });
 
-  var dotsEl = document.getElementById('heroDots');
-  heroItems.forEach(function(_, i) {
-    var d = document.createElement('button');
-    d.className = 'hero-dot' + (i === 0 ? ' active' : '');
-    d.setAttribute('aria-label', 'Slide ' + (i + 1));
-    d.onclick = function() { showHeroSlide(i); startHeroTimer(); };
-    dotsEl.appendChild(d);
+  document.getElementById('heroSlides').innerHTML = heroItems.map(heroSlide).join('');
+  document.getElementById('heroTotal').textContent = heroItems.length;
+  document.getElementById('heroPrev').addEventListener('click', function () {
+    showHeroSlide(heroIdx - 1);
+    startHeroTimer();
   });
-
-  document.getElementById('heroCounter').style.display = 'flex';
-  document.getElementById('heroPrev').style.display = 'flex';
-  document.getElementById('heroNext').style.display = 'flex';
-  document.getElementById('heroPrev').onclick = function() { showHeroSlide(heroIdx - 1); startHeroTimer(); };
-  document.getElementById('heroNext').onclick = function() { showHeroSlide(heroIdx + 1); startHeroTimer(); };
+  document.getElementById('heroNext').addEventListener('click', function () {
+    showHeroSlide(heroIdx + 1);
+    startHeroTimer();
+  });
   startHeroTimer();
 }
 
-/* ─── GENRE ROW ─────────────────────────────────────── */
-function initGenreRow() {
+function initGenres() {
   var row = document.getElementById('genreRow');
-  row.innerHTML = GENRES.map(function(g) {
-    return '<div class="genre-tab" data-genre="' + g + '">' + g + '</div>';
+  row.innerHTML = GENRES.map(function (genre) {
+    return '<button type="button" data-genre="' + escH(genre) + '">' + escH(genre) + '</button>';
   }).join('');
-  row.querySelectorAll('.genre-tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      location.href = 'search.html?genre=' + encodeURIComponent(tab.dataset.genre);
-    });
+  row.addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-genre]');
+    if (button) location.href = 'search.html?genre=' + encodeURIComponent(button.dataset.genre);
   });
-  document.getElementById('genreL').onclick = function() { row.scrollBy({ left: -200, behavior: 'smooth' }); };
-  document.getElementById('genreR').onclick = function() { row.scrollBy({ left: 200, behavior: 'smooth' }); };
+  document.getElementById('genreL').addEventListener('click', function () {
+    row.scrollBy({ left: -440, behavior: 'smooth' });
+  });
+  document.getElementById('genreR').addEventListener('click', function () {
+    row.scrollBy({ left: 440, behavior: 'smooth' });
+  });
 }
 
-/* ─── MAIN GRID ─────────────────────────────────────── */
-var currentTab = 'trending', currentPage = 1;
-
-function skeletons(n) {
+function cardSkeletons(count) {
   var html = '';
-  for (var i = 0; i < (n || 20); i++) {
-    html += '<div class="m-card"><div class="skel skel-poster"></div><div class="m-card-body"><div class="skel skel-line"></div><div class="skel skel-line s"></div></div></div>';
+  for (var index = 0; index < count; index++) {
+    html += '<div class="home-anime-card"><div class="skel home-card-skeleton"></div><div class="skel skel-line"></div></div>';
   }
   return html;
 }
 
-function mCard(media) {
+function catalogCard(media) {
   var title = getTitle(media);
-  var score = formatScore(media.averageScore);
-  var img = media.coverImage.large || media.coverImage.medium;
-  var dot = dotCls(media.status);
-  var ep = media.episodes ? '<i class="fa-solid fa-tv"></i> ' + media.episodes : '';
-  var year = media.seasonYear || '';
-  var format = (media.format || '').replace(/_/g, ' ');
-  return '<div class="m-card fade-in" onclick="location.href=\'anime.html?id=' + media.id + '\'">' +
-    '<div class="m-card-poster">' +
-      '<img src="' + escH(img) + '" alt="' + escH(title) + '" loading="lazy" />' +
-      (score !== 'N/A' ? '<div class="m-score-badge"><i class="fa-solid fa-star"></i> ' + score + '</div>' : '') +
-      '<div class="m-dot ' + dot + '"></div>' +
-    '</div>' +
-    '<div class="m-card-body">' +
-      '<div class="m-card-title">' + escH(title) + '</div>' +
-      '<div class="m-card-meta">' +
-        (format ? '<span>' + format + '</span>' : '') +
-        (year ? '<span>' + year + '</span>' : '') +
-        (ep ? '<span>' + ep + '</span>' : '') +
+  var image = media.coverImage.extraLarge || media.coverImage.large || media.coverImage.medium;
+  var episodes = mediaEpisodes(media);
+  return (
+    '<a class="home-anime-card fade-in" href="watch.html?id=' + media.id + '&ep=1&lang=sub" style="--card-accent:' + escH(media.coverImage.color || '#b5a8ff') + '">' +
+      '<span class="home-card-image"><img src="' + escH(image) + '" alt="' + escH(title) + '" loading="lazy"><i class="fa-solid fa-play"></i><b>+</b></span>' +
+      '<h3><i class="' + dotClass(media.status) + '"></i>' + escH(title) + '</h3>' +
+      '<div class="home-card-meta">' +
+        '<span>' + escH((media.format || 'TV').replace(/_/g, ' ')) + '</span>' +
+        (media.seasonYear ? '<span><i class="fa-solid fa-calendar-days"></i> ' + media.seasonYear + '</span>' : '') +
+        (episodes ? '<span><i class="fa-solid fa-closed-captioning"></i> ' + episodes + '</span>' : '') +
+        (media.averageScore ? '<span><i class="fa-regular fa-star"></i> ' + media.averageScore + '</span>' : '') +
       '</div>' +
-    '</div>' +
-  '</div>';
+    '</a>'
+  );
 }
 
-async function loadGrid(tab, page) {
+async function loadCatalog(tab, page) {
   var grid = document.getElementById('mainGrid');
-  grid.innerHTML = skeletons(20);
+  grid.innerHTML = cardSkeletons(20);
+  currentTab = tab || 'newest';
   currentPage = page || 1;
-  var fetchFn = { trending: getTrending, popular: getPopular, toprated: getTopRated }[tab || 'trending'];
-  var items = (await fetchFn(currentPage, 20)).filter(function(m) { return m.type === 'ANIME'; });
-  grid.innerHTML = items.map(mCard).join('');
+  var fetcher = { trending: getTrending, popular: getPopular, toprated: getTopRated }[currentTab];
+  var items = (await fetcher(currentPage, 20)).filter(function (media) { return media.type === 'ANIME'; });
+  grid.innerHTML = items.map(catalogCard).join('');
   document.getElementById('pageNum').textContent = currentPage;
   document.getElementById('pagePrev').disabled = currentPage <= 1;
   document.getElementById('pageNext').disabled = items.length < 20;
 }
 
-function initTabs() {
-  document.querySelectorAll('.tab-pill').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.tab-pill').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      currentTab = btn.dataset.tab;
-      loadGrid(currentTab, 1);
-    });
+function initCatalogControls() {
+  document.querySelector('.home-tabs').addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-tab]');
+    if (!button) return;
+    document.querySelectorAll('.home-tabs button').forEach(function (item) { item.classList.remove('active'); });
+    button.classList.add('active');
+    loadCatalog(button.dataset.tab, 1);
   });
-  document.getElementById('pagePrev').addEventListener('click', function() {
-    if (currentPage > 1) loadGrid(currentTab, currentPage - 1);
+  document.getElementById('pagePrev').addEventListener('click', function () {
+    if (currentPage > 1) loadCatalog(currentTab, currentPage - 1);
   });
-  document.getElementById('pageNext').addEventListener('click', function() {
-    loadGrid(currentTab, currentPage + 1);
+  document.getElementById('pageNext').addEventListener('click', function () {
+    loadCatalog(currentTab, currentPage + 1);
   });
 }
 
-/* ─── BOTTOM LISTS ──────────────────────────────────── */
-function bItem(media) {
+function listCard(media, dot) {
   var title = getTitle(media);
-  var img = media.coverImage.medium || media.coverImage.large;
-  var dot = dotCls(media.status);
-  var year = media.seasonYear || '';
-  var ep = media.episodes || '';
-  var score = formatScore(media.averageScore);
-  var format = (media.format || 'TV').replace(/_/g, ' ');
-  var statusLabel = { RELEASING: 'Airing', FINISHED: 'Finished', NOT_YET_RELEASED: 'Upcoming' }[media.status] || '';
-  return '<div class="b-item" onclick="location.href=\'anime.html?id=' + media.id + '\'">' +
-    '<div class="b-thumb"><img src="' + escH(img) + '" alt="' + escH(title) + '" loading="lazy" /></div>' +
-    '<div class="b-body">' +
-      '<div class="b-status"><div class="b-dot ' + dot + '"></div>' + statusLabel + '</div>' +
-      '<div class="b-title">' + escH(title) + '</div>' +
-      '<div class="b-meta">' + format + (year ? ' · ' + year : '') + (ep ? ' · <i class="fa-solid fa-tv"></i> ' + ep : '') + (score !== 'N/A' ? ' · <i class="fa-solid fa-star"></i> ' + score : '') + '</div>' +
-    '</div>' +
-  '</div>';
+  var cover = media.coverImage.large || media.coverImage.medium;
+  var banner = media.bannerImage || cover;
+  var episodes = mediaEpisodes(media);
+  return (
+    '<a class="home-list-card" href="watch.html?id=' + media.id + '&ep=1&lang=sub">' +
+      '<span class="home-list-backdrop" style="background-image:url(\'' + escH(banner) + '\')"></span>' +
+      '<img src="' + escH(cover) + '" alt="' + escH(title) + '">' +
+      '<span class="home-list-copy">' +
+        '<strong><i class="' + (dot || dotClass(media.status)) + '"></i>' + escH(title) + '</strong>' +
+        '<small>' +
+          '<b>' + escH((media.format || 'TV').replace(/_/g, ' ')) + '</b>' +
+          (media.seasonYear ? '<b><i class="fa-solid fa-calendar-days"></i> ' + media.seasonYear + '</b>' : '') +
+          (episodes ? '<b><i class="fa-solid fa-closed-captioning"></i> ' + episodes + '</b>' : '') +
+          (media.averageScore ? '<b><i class="fa-regular fa-star"></i> ' + media.averageScore + '</b>' : '') +
+        '</small>' +
+      '</span>' +
+    '</a>'
+  );
 }
 
-async function loadBottomLists() {
-  var results = await Promise.all([getFinished(1, 8), getMovies(1, 8)]);
-  document.getElementById('finishedList').innerHTML = results[0].filter(function(m) { return m.type === 'ANIME'; }).map(bItem).join('');
-  document.getElementById('moviesList').innerHTML = results[1].filter(function(m) { return m.type === 'ANIME'; }).map(bItem).join('');
+async function loadLists() {
+  var results = await Promise.all([
+    getAiring(1, 5),
+    getUpcoming(1, 5),
+    getFinished(1, 6),
+    getMovies(1, 6)
+  ]);
+  document.getElementById('topAiringList').innerHTML = results[0].map(function (media) { return listCard(media, 'ongoing'); }).join('');
+  document.getElementById('upcomingList').innerHTML = results[1].map(function (media) { return listCard(media, 'upcoming'); }).join('');
+  document.getElementById('finishedList').innerHTML = results[2].map(function (media) { return listCard(media, 'finished'); }).join('');
+  document.getElementById('moviesList').innerHTML = results[3].map(function (media) { return listCard(media, 'finished'); }).join('');
 }
 
-/* ─── SIDEBAR ───────────────────────────────────────── */
-function sbItem(media, dotClass) {
-  var title = getTitle(media);
-  var img = media.coverImage.medium || media.coverImage.large;
-  var score = formatScore(media.averageScore);
-  var format = (media.format || 'TV').replace(/_/g, ' ');
-  var year = media.seasonYear || '';
-  var ep = media.episodes || (media.nextAiringEpisode ? media.nextAiringEpisode.episode - 1 : '');
-  return '<div class="sb-item" onclick="location.href=\'anime.html?id=' + media.id + '\'">' +
-    '<div class="sb-thumb"><img src="' + escH(img) + '" alt="' + escH(title) + '" loading="lazy" /></div>' +
-    '<div class="sb-body">' +
-      '<div class="sb-status"><div class="sb-dot ' + (dotClass || 'g') + '"></div>' + (year || '') + '</div>' +
-      '<div class="sb-title">' + escH(title) + '</div>' +
-      '<div class="sb-meta">' + format + (ep ? ' · <i class="fa-solid fa-tv"></i> ' + ep : '') + (score !== 'N/A' ? ' · <i class="fa-solid fa-star"></i> ' + score : '') + '</div>' +
-    '</div>' +
-  '</div>';
-}
-
-async function loadSidebar() {
-  var results = await Promise.all([getAiring(1, 8), getUpcoming(1, 8)]);
-  var airingEl = document.getElementById('topAiringList');
-  var upcomingEl = document.getElementById('upcomingList');
-  airingEl.innerHTML = results[0].filter(function(m) { return m.type === 'ANIME'; }).map(function(m) { return sbItem(m, 'g'); }).join('') ||
-    '<p style="color:var(--text-muted);font-size:.78rem;padding:8px 0">No data</p>';
-  upcomingEl.innerHTML = results[1].filter(function(m) { return m.type === 'ANIME'; }).map(function(m) { return sbItem(m, 'o'); }).join('') ||
-    '<p style="color:var(--text-muted);font-size:.78rem;padding:8px 0">No data</p>';
-}
-
-/* ─── SCHEDULE ──────────────────────────────────────── */
-var DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function initScheduleDays() {
   var now = new Date();
-  var todayDow = (now.getDay() + 6) % 7;
+  var current = now.getDay();
   var container = document.getElementById('schedDays');
-  container.innerHTML = DAYS.map(function(d, i) {
+  container.innerHTML = DAYS.map(function (day, index) {
     var date = new Date(now);
-    date.setDate(date.getDate() + (i - todayDow));
-    var label = date.getDate();
-    var month = date.toLocaleString('default', { month: 'short' });
-    var isToday = i === todayDow;
-    return '<div class="sched-day' + (isToday ? ' active' : '') + '" data-offset="' + (i - todayDow) + '">' + d + '<small>' + month + ' ' + label + '</small></div>';
+    date.setDate(date.getDate() + index - current);
+    return (
+      '<button type="button" data-offset="' + (index - current) + '"' + (index === current ? ' class="active"' : '') + '>' +
+        day + (index === current ? '<small>' + date.toLocaleString('default', { month:'short' }) + ' ' + date.getDate() + '</small>' : '') +
+      '</button>' + (index < DAYS.length - 1 ? '<i>/</i>' : '')
+    );
   }).join('');
 
-  container.querySelectorAll('.sched-day').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      container.querySelectorAll('.sched-day').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      loadSchedule(parseInt(btn.dataset.offset));
+  container.addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-offset]');
+    if (!button) return;
+    container.querySelectorAll('button').forEach(function (item) {
+      item.classList.remove('active');
+      item.querySelector('small') && item.querySelector('small').remove();
     });
+    button.classList.add('active');
+    var selected = new Date();
+    selected.setDate(selected.getDate() + parseInt(button.dataset.offset, 10));
+    button.insertAdjacentHTML('beforeend', '<small>' + selected.toLocaleString('default', { month:'short' }) + ' ' + selected.getDate() + '</small>');
+    loadSchedule(parseInt(button.dataset.offset, 10));
   });
 }
 
@@ -245,56 +246,64 @@ async function loadSchedule(offset) {
   var list = document.getElementById('schedList');
   list.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
   try {
-    var items = await getDaySchedule(offset || 0);
-    if (!items.length) {
-      list.innerHTML = '<p style="color:var(--text-muted);font-size:.75rem;padding:8px 0;text-align:center">No schedule data</p>';
+    var schedule = await getDaySchedule(offset || 0);
+    if (!schedule.length) {
+      list.innerHTML = '<p class="home-empty">No schedule data</p>';
       return;
     }
-    var groups = {};
-    items.forEach(function(s) {
-      var d = new Date(s.airingAt * 1000);
-      var h = String(d.getHours()).padStart(2, '0');
-      var m = String(d.getMinutes()).padStart(2, '0');
-      var time = h + ':' + m;
-      if (!groups[time]) groups[time] = [];
-      groups[time].push(s);
-    });
-    list.innerHTML = Object.keys(groups).map(function(time) {
-      return '<div class="sched-time-group">' +
-        '<div class="sched-time">' + time + '</div>' +
-        groups[time].map(function(s) {
-          var title = (s.media && (s.media.title.english || s.media.title.romaji)) || 'Unknown';
-          var id = s.media ? s.media.id : '';
-          return '<div class="sched-ep" onclick="location.href=\'anime.html?id=' + id + '\'">' +
-            '<span class="sched-ep-name">' + escH(title) + '</span>' +
-            '<span class="sched-ep-badge">EP ' + s.episode + '</span>' +
-          '</div>';
-        }).join('') +
-      '</div>';
+    list.innerHTML = schedule.slice(0, 11).map(function (item, index) {
+      var date = new Date(item.airingAt * 1000);
+      var title = item.media ? (item.media.title.english || item.media.title.romaji) : 'Unknown';
+      return (
+        '<a class="home-schedule-item' + (index < 2 ? ' aired' : '') + '" href="watch.html?id=' + item.media.id + '&ep=' + item.episode + '&lang=sub">' +
+          '<time>' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0') + '</time>' +
+          '<strong>' + escH(title) + '</strong>' +
+          '<span>EP ' + item.episode + '</span>' +
+        '</a>'
+      );
     }).join('');
-  } catch(e) {
-    list.innerHTML = '<p style="color:var(--text-muted);font-size:.75rem;padding:8px 0;text-align:center">Schedule unavailable</p>';
+  } catch (error) {
+    list.innerHTML = '<p class="home-empty">Schedule unavailable</p>';
   }
 }
 
-/* ─── INIT ──────────────────────────────────────────── */
-async function homeInit() {
-  initGenreRow();
-  initTabs();
+async function initHome() {
+  initGenres();
+  initCatalogControls();
   initScheduleDays();
 
-  var trendingPromise = getTrending(1, 11);
-  loadGrid('trending', 1);
-  loadSidebar();
-  loadBottomLists();
+  var trendingPromise = getTrending(1, 12);
+  loadCatalog('trending', 1);
+  loadLists();
   loadSchedule(0);
 
   var trending = await trendingPromise;
   initHero(trending);
+
+  if (trending && trending.length) {
+    var ldList = document.createElement('script');
+    ldList.type = 'application/ld+json';
+    ldList.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      'name': 'Trending Anime on HEBiANiME',
+      'url': 'https://hebianime.com/',
+      'itemListElement': trending.slice(0, 10).map(function(m, i) {
+        return {
+          '@type': 'ListItem',
+          'position': i + 1,
+          'name': (m.title && (m.title.english || m.title.romaji)) || 'Anime',
+          'url': 'https://hebianime.com/anime.html?id=' + m.id,
+          'image': (m.coverImage && (m.coverImage.extraLarge || m.coverImage.large)) || ''
+        };
+      })
+    });
+    document.head.appendChild(ldList);
+  }
 }
 
-homeInit().catch(function(err) {
-  console.error(err);
+initHome().catch(function (error) {
+  console.error(error);
   var grid = document.getElementById('mainGrid');
-  if (grid) grid.innerHTML = '<div class="error-wrap" style="grid-column:1/-1"><h3>Failed to load</h3><p>' + err.message + '</p></div>';
+  if (grid) grid.innerHTML = '<div class="error-wrap" style="grid-column:1/-1"><h3>Failed to load</h3><p>' + escH(error.message) + '</p></div>';
 });

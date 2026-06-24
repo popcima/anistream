@@ -1,5 +1,5 @@
 /* =====================================================
-   AniStream — AniList GraphQL API + MegaPlay streaming
+   HEBiANiME — AniList GraphQL API + MegaPlay streaming
    ALL queries enforce type:ANIME, isAdult:false
    Streaming always uses /stream/ani/{anilist-id}/{ep}/{lang}
    ===================================================== */
@@ -198,6 +198,27 @@ async function getAnimeById(id) {
   `;
   const data = await anilistFetch(query, { id: Number(id) });
   if (!data.Media) throw new Error('Anime not found (ID: ' + id + ')');
+  return data.Media;
+}
+
+/* lightweight relations fetch for season chain traversal */
+async function getAnimeRelations(id) {
+  const query = `
+    query ($id: Int) {
+      Media(id: $id, type: ANIME) {
+        id
+        title { romaji english }
+        coverImage { medium }
+        relations {
+          edges {
+            relationType(version: 2)
+            node { id type format title { romaji english } }
+          }
+        }
+      }
+    }
+  `;
+  const data = await anilistFetch(query, { id: Number(id) });
   return data.Media;
 }
 

@@ -3,148 +3,258 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AniStream · Watch Free Anime Online · Stream Subbed & Dubbed in HD</title>
+  <title>HEBiANiME · Watch Free Anime Online · Stream Subbed &amp; Dubbed in HD</title>
+
+  <!-- SEO Core -->
+  <meta name="description" content="Watch free anime online in HD on HEBiANiME. Stream thousands of subbed and dubbed anime — Demon Slayer, Attack on Titan, Naruto, One Piece, Jujutsu Kaisen and more. No signup required." />
+  <meta name="keywords" content="watch anime online free, anime streaming, HEBiANiME, dubbed anime, subbed anime, HD anime, free anime online, demon slayer, attack on titan, naruto, one piece, jujutsu kaisen" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="author" content="HEBiANiME" />
+  <link rel="canonical" href="https://hebianime.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="HEBiANiME" />
+  <meta property="og:title" content="HEBiANiME · Watch Free Anime Online in HD" />
+  <meta property="og:description" content="Stream thousands of subbed and dubbed anime in HD — Demon Slayer, Attack on Titan, Naruto, One Piece and more. Free, no signup." />
+  <meta property="og:url" content="https://hebianime.com/" />
+  <meta property="og:image" content="https://hebianime.com/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="HEBiANiME · Watch Free Anime Online in HD" />
+  <meta name="twitter:description" content="Stream thousands of subbed and dubbed anime in HD — Demon Slayer, Attack on Titan, Naruto, One Piece and more. Free, no signup." />
+  <meta name="twitter:image" content="https://hebianime.com/og-image.jpg" />
+
+  <!-- PWA + App -->
+  <meta name="theme-color" content="#0B0B10" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="HEBiANiME" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Language targeting -->
+  <link rel="alternate" hreflang="en" href="https://hebianime.com/" />
+  <link rel="alternate" hreflang="x-default" href="https://hebianime.com/" />
+
+  <!-- JSON-LD: WebSite + SearchAction -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://hebianime.com/#website",
+        "name": "HEBiANiME",
+        "url": "https://hebianime.com",
+        "description": "Watch free anime online in HD — subbed and dubbed, no signup required.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://hebianime.com/search.html?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://hebianime.com/#organization",
+        "name": "HEBiANiME",
+        "url": "https://hebianime.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hebianime.com/logo.svg",
+          "width": 295,
+          "height": 68
+        }
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://hebianime.com/#webpage",
+        "url": "https://hebianime.com/",
+        "name": "HEBiANiME · Watch Free Anime Online in HD",
+        "isPartOf": {"@id": "https://hebianime.com/#website"},
+        "about": {"@id": "https://hebianime.com/#organization"},
+        "description": "Watch free anime online in HD — subbed and dubbed, no signup required."
+      }
+    ]
+  }
+  </script>
+
   <link rel="stylesheet" href="css/style.css" />
+  <!-- Preconnect to speed up API and CDN fetches (Core Web Vitals) -->
+  <link rel="preconnect" href="https://graphql.anilist.co" />
+  <link rel="preconnect" href="https://s4.anilist.co" crossorigin />
+  <link rel="dns-prefetch" href="https://graphql.anilist.co" />
+  <link rel="dns-prefetch" href="https://s4.anilist.co" />
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@100..900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 68 68'><circle cx='34' cy='34' r='32' fill='%23090910'/><circle cx='34' cy='34' r='32' fill='none' stroke='%23BB0000' stroke-width='1.5'/><path d='M34,62C14,57 12,42 26,35C40,28 54,18 44,8' fill='none' stroke='%23CC1111' stroke-width='5.5' stroke-linecap='round'/><ellipse cx='42' cy='8' rx='7' ry='4.5' fill='%23EE2222' transform='rotate(-48 42 8)'/><circle cx='45.5' cy='6' r='1.8' fill='%23090910'/></svg>" />
 </head>
-<body>
+<body class="home-page">
 
-<!-- NAVBAR -->
-<nav class="navbar">
-  <a class="nav-logo" href="index.html">ANISTREAM<em>.</em></a>
+<nav class="navbar watch-navbar">
+  <button class="watch-nav-square watch-menu-btn" type="button" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <a class="watch-wordmark" href="index.html">HEBiANiME</a>
   <div class="nav-search-wrap">
     <span class="nav-s-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
     <input type="text" id="navSearch" placeholder="Search Anime" autocomplete="off" />
-    <span class="nav-s-kbd">⌘</span>
-    <button class="nav-s-btn" id="navSearchBtn"><i class="fa-solid fa-arrow-right"></i></button>
+    <span class="watch-search-key">⌘</span>
   </div>
-  <div class="nav-right">
-    <div class="nav-links">
-      <a href="index.html" class="active">Home</a>
-      <a href="search.html">Browse</a>
-    </div>
-    <a class="nav-icon-btn" href="search.html" title="Browse All"><i class="fa-solid fa-border-all"></i></a>
+  <button class="watch-nav-square watch-search-submit" id="navSearchBtn" type="button" aria-label="Search">
+    <i class="fa-solid fa-magnifying-glass"></i>
+  </button>
+  <a class="watch-nav-square watch-shuffle-btn" href="search.html?sort=TRENDING_DESC" aria-label="Discover anime">
+    <i class="fa-solid fa-shuffle"></i>
+  </a>
+  <div class="watch-nav-spacer"></div>
+  <div class="watch-mobile-actions">
+    <a class="watch-nav-square" href="search.html" aria-label="Browse anime">
+      <i class="fa-solid fa-border-all"></i>
+    </a>
   </div>
 </nav>
 
-<main class="main">
-
-  <!-- HERO -->
-  <div class="hero" id="hero">
+<main class="main home-main">
+  <h1 class="seo-only">Watch Free Anime Online in HD — HEBiANiME</h1>
+  <section class="home-hero" id="hero">
     <div id="heroSlides"></div>
-    <button class="hero-arrow hero-arrow-l" id="heroPrev" style="display:none"><i class="fa-solid fa-chevron-left"></i></button>
-    <button class="hero-arrow hero-arrow-r" id="heroNext" style="display:none"><i class="fa-solid fa-chevron-right"></i></button>
-    <div id="heroCounter" style="display:none"><div id="heroDots"></div></div>
-  </div>
+    <div class="home-hero-nav">
+      <button id="heroPrev" type="button" aria-label="Previous slide"><i class="fa-solid fa-chevron-left"></i></button>
+      <strong><span id="heroIndex">1</span> / <span id="heroTotal">1</span></strong>
+      <button id="heroNext" type="button" aria-label="Next slide"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  </section>
 
-  <!-- GENRE TABS -->
-  <div class="genre-row-wrap">
-    <button class="genre-row-scroll l" id="genreL"><i class="fa-solid fa-chevron-left"></i></button>
-    <div class="genre-row" id="genreRow"></div>
-    <button class="genre-row-scroll r" id="genreR"><i class="fa-solid fa-chevron-right"></i></button>
-  </div>
+  <section class="home-genre-shell">
+    <button class="home-genre-arrow" id="genreL" type="button" aria-label="Previous genres"><i class="fa-solid fa-circle-chevron-left"></i></button>
+    <div class="home-genre-row" id="genreRow"></div>
+    <button class="home-genre-arrow" id="genreR" type="button" aria-label="Next genres"><i class="fa-solid fa-circle-chevron-right"></i></button>
+  </section>
 
-  <!-- MAIN CONTENT LAYOUT -->
-  <div class="content-wrap">
-
-    <!-- LEFT: MAIN CONTENT -->
-    <div class="content-main">
-
-      <!-- TABS + PAGER -->
-      <div class="main-tabs-row">
-        <div class="tab-pills">
-          <button class="tab-pill active" data-tab="trending">TRENDING</button>
-          <button class="tab-pill" data-tab="popular">POPULAR</button>
-          <button class="tab-pill" data-tab="toprated">TOP RATED</button>
-        </div>
-        <div class="pager">
-          <button class="pager-btn" id="pagePrev" disabled><i class="fa-solid fa-chevron-left"></i></button>
-          <span class="pager-num" id="pageNum">1</span>
-          <button class="pager-btn" id="pageNext"><i class="fa-solid fa-chevron-right"></i></button>
-        </div>
-      </div>
-
-      <!-- MAIN GRID -->
-      <div class="m-grid" id="mainGrid" aria-label="Anime list">
-        <!-- skeletons injected by JS -->
-      </div>
-
-      <!-- BOTTOM: JUST FINISHED + TOP MOVIES -->
-      <div class="bottom-row" id="bottomRow">
-        <div class="b-section">
-          <div class="s-header">
-            <span class="s-title"><i class="fa-solid fa-circle-check"></i> JUST FINISHED</span>
+  <div class="home-content-grid">
+    <div class="home-primary">
+      <section class="home-community">
+        <div class="home-community-top">
+          <div class="home-community-avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+          <div><h2>Love the Site?</h2><p>Add it to your Bookmarks!</p></div>
+          <div class="home-socials">
+            <a href="#" aria-label="Reddit"><i class="fa-brands fa-reddit"></i></a>
+            <a href="#" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+            <a href="#" aria-label="X"><i class="fa-brands fa-x-twitter"></i></a>
           </div>
+        </div>
+        <div class="home-promo" aria-label="HEBiANiME promotion">
+          <span><i class="fa-solid fa-plane"></i></span>
+          <b>FINAL WIN<br><small>$323,366.67</small></b>
+          <strong>STREAM<br>THE BEST</strong>
+          <em>Only on HEBiANiME</em>
+          <i>WATCH NOW</i>
+        </div>
+      </section>
+
+      <div class="home-tabs-row">
+        <div class="home-tabs">
+          <button class="active" data-tab="trending" type="button">TRENDING</button>
+          <button data-tab="popular" type="button">POPULAR</button>
+          <button data-tab="toprated" type="button">TOP RATED</button>
+        </div>
+        <div class="home-pager">
+          <button id="pagePrev" type="button" disabled><i class="fa-solid fa-chevron-left"></i></button>
+          <span id="pageNum">1</span>
+          <button id="pageNext" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+
+      <div class="home-anime-grid" id="mainGrid" aria-label="Anime catalog"></div>
+
+      <div class="home-bottom-grid">
+        <section class="home-list-panel">
+          <h2><i class="fa-solid fa-chevron-right"></i> JUST FINISHED</h2>
           <div id="finishedList"></div>
-        </div>
-        <div class="b-section">
-          <div class="s-header">
-            <span class="s-title"><i class="fa-solid fa-film"></i> TOP MOVIES</span>
-          </div>
+          <a class="home-list-more" href="search.html?status=FINISHED"><i class="fa-solid fa-chevron-down"></i></a>
+        </section>
+        <section class="home-list-panel">
+          <h2><i class="fa-solid fa-chevron-right"></i> TOP MOVIES</h2>
           <div id="moviesList"></div>
-        </div>
+          <a class="home-list-more" href="search.html?format=MOVIE"><i class="fa-solid fa-chevron-down"></i></a>
+        </section>
+      </div>
+    </div>
+
+    <aside class="home-sidebar">
+      <section class="home-side-panel">
+        <h2><i class="fa-solid fa-chevron-right"></i> TOP AIRING</h2>
+        <div id="topAiringList"><div class="loading-wrap"><div class="spinner"></div></div></div>
+        <a class="home-list-more" href="search.html?status=RELEASING"><i class="fa-solid fa-chevron-down"></i></a>
+      </section>
+
+      <div class="home-side-promo">
+        <span><i class="fa-solid fa-plane"></i></span>
+        <strong>STREAM<br>THE BEST</strong>
+        <em>WATCH NOW</em>
       </div>
 
-    </div><!-- /content-main -->
+      <section class="home-side-panel">
+        <h2><i class="fa-solid fa-bullhorn"></i> UPCOMING</h2>
+        <div id="upcomingList"><div class="loading-wrap"><div class="spinner"></div></div></div>
+        <a class="home-list-more" href="search.html?status=NOT_YET_RELEASED"><i class="fa-solid fa-chevron-down"></i></a>
+      </section>
 
-    <!-- RIGHT: SIDEBAR -->
-    <aside class="content-sidebar">
-
-      <div class="sb-section">
-        <div class="s-header">
-          <span class="s-title"><i class="fa-solid fa-rss"></i> TOP AIRING</span>
-          <a class="s-more" href="search.html?status=RELEASING"><i class="fa-solid fa-chevron-right"></i></a>
+      <section class="home-schedule">
+        <div class="home-section-title">
+          <small>Estimated</small>
+          <h2>Airing Schedule</h2>
         </div>
-        <div id="topAiringList">
-          <div class="loading-wrap"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <div class="sb-section">
-        <div class="s-header">
-          <span class="s-title"><i class="fa-solid fa-calendar-days"></i> UPCOMING</span>
-          <a class="s-more" href="search.html"><i class="fa-solid fa-chevron-right"></i></a>
-        </div>
-        <div id="upcomingList">
-          <div class="loading-wrap"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <div class="sb-section">
-        <div class="s-header">
-          <span class="s-title"><i class="fa-solid fa-clock"></i> Airing Schedule</span>
-        </div>
-        <div class="sched-days" id="schedDays"></div>
-        <div id="schedList">
-          <div class="loading-wrap"><div class="spinner"></div></div>
-        </div>
-        <div class="sched-more" onclick="location.href='search.html?status=RELEASING'">View More</div>
-      </div>
-
-    </aside><!-- /sidebar -->
-
-  </div><!-- /content-wrap -->
-
-</main><!-- /main -->
-
-<footer class="footer">
-  <div>
-    <div class="footer-logo">ANISTREAM<em>.</em></div>
-    <p class="footer-disc">This website does not retain any files on its server. Rather, it solely provides links to media content hosted by third-party services.</p>
+        <div class="home-schedule-days" id="schedDays"></div>
+        <div class="home-schedule-list" id="schedList"><div class="loading-wrap"><div class="spinner"></div></div></div>
+      </section>
+    </aside>
   </div>
-  <div class="footer-links">
-    <a class="footer-link" href="search.html?sort=TRENDING_DESC">Trending</a>
-    <a class="footer-link" href="search.html">Search</a>
-    <a class="footer-link" href="search.html?status=RELEASING">Schedule</a>
+</main>
+
+<footer class="home-footer">
+  <div class="home-footer-top">
+    <div class="home-footer-brand">
+      <div class="home-footer-mark">A</div>
+      <p>This website does not retain any files on its server. Rather, it solely provides links to media content hosted by third-party services.</p>
+    </div>
+    <nav>
+      <a href="search.html?sort=TRENDING_DESC">Trending</a>
+      <a href="search.html">Search</a>
+      <a href="search.html?status=RELEASING">Schedule</a>
+      <a href="search.html">Domains</a>
+      <a href="search.html">Status</a>
+      <a href="#">Donate &lt;3</a>
+    </nav>
+  </div>
+  <div class="home-footer-bottom">
+    <span>© 2026 <u>hebianime.com</u> | Website by <strong>HEBiANiME</strong> <b>v1.10.6</b></span>
+    <div class="home-footer-actions">
+      <button type="button"><i class="fa-solid fa-desktop"></i></button>
+      <button type="button"><i class="fa-solid fa-sun"></i></button>
+      <button class="active" type="button"><i class="fa-solid fa-headphones"></i></button>
+      <button type="button"><i class="fa-solid fa-a"></i></button>
+      <button type="button"><i class="fa-solid fa-mug-hot"></i></button>
+      <a href="#" aria-label="Reddit"><i class="fa-brands fa-reddit"></i></a>
+      <a href="#" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+      <a href="#" aria-label="X"><i class="fa-brands fa-x-twitter"></i></a>
+    </div>
   </div>
 </footer>
-<div class="footer-copy">© 2026 AniStream · Data from AniList · Streaming via MegaPlay</div>
 
 <script src="js/api.js"></script>
+<script src="js/nav.js"></script>
 <script src="js/home.js"></script>
 <script>
   const ns = document.getElementById('navSearch');

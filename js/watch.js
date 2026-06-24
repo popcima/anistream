@@ -1,465 +1,581 @@
-/* Watch page — Miruro exact layout */
-var params    = new URLSearchParams(location.search);
-var watchId   = params.get('id');
-var main      = document.getElementById('mainContent');
-var watchEp   = parseInt(params.get('ep')) || 1;
+/* HEBiANiME watch page — Miruro-inspired player workspace */
+var params = new URLSearchParams(location.search);
+var watchId = params.get('id');
+var watchEp = parseInt(params.get('ep'), 10) || 1;
 var watchLang = params.get('lang') || 'sub';
 var watchData = null;
+var main = document.getElementById('mainContent');
+var epDates = {};
+var epImages = {};
+var currentRangeStart = 1;
+var EP_CHUNK = 50;
 
-function escH(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escH(value) {
+  return (value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
-if (!watchId) {
-  main.innerHTML = '<div class="error-wrap" style="padding-top:120px"><h3>No anime selected</h3><a href="index.html" class="btn btn-primary" style="margin-top:14px">Go Home</a></div>';
+function stripHtml(value) {
+  return (value || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function updateUrl() {
-  history.replaceState({}, '', 'watch.html?id='+watchId+'&ep='+watchEp+'&lang='+watchLang);
+  history.replaceState({}, '', 'watch.html?id=' + watchId + '&ep=' + watchEp + '&lang=' + watchLang);
 }
 
-function fmtDate(d) {
-  if (!d || !d.year) return '—';
-  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return M[(d.month||1)-1] + ' ' + (d.day ? String(d.day).padStart(2,'0')+', ' : '') + d.year;
+function titleCase(value) {
+  if (!value) return '—';
+  value = value.replace(/_/g, ' ').toLowerCase();
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/* ── Episode helpers ── */
-var epDates  = {};
-var epImages = {};
-
-function tsToShort(ts) {
-  if (!ts) return '';
-  var d = new Date(ts * 1000);
-  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return M[d.getMonth()] + ' ' + String(d.getDate()).padStart(2,'0') + ', ' + d.getFullYear();
+function fmtDate(date, shortMonth) {
+  if (!date || !date.year) return '—';
+  var short = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var full = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var months = shortMonth ? short : full;
+  return months[(date.month || 1) - 1] + (date.day ? ' ' + date.day + ', ' : ' ') + date.year;
 }
 
-function buildEpDatesMap(sch) {
+function unixDate(timestamp) {
+  if (!timestamp) return '';
+  var date = new Date(timestamp * 1000);
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months[date.getMonth()] + ' ' + String(date.getDate()).padStart(2, '0') + ', ' + date.getFullYear();
+}
+
+function buildEpisodeMaps(media) {
   epDates = {};
-  if (!sch || !sch.nodes) return;
-  sch.nodes.forEach(function(n) { epDates[n.episode] = tsToShort(n.airingAt); });
-}
-
-function parseStreamEp(str) {
-  var s = (str || '').trim();
-  var m = s.match(/(?:episode|ep\.?)\s*(\d+)[\s:·\-–—]+(.+)/i);
-  if (m) return { num: parseInt(m[1]), title: m[2].trim() };
-  var m2 = s.match(/(?:episode|ep\.?)\s*(\d+)/i);
-  if (m2) return { num: parseInt(m2[1]), title: '' };
-  var m3 = s.match(/^(\d+)[\s:·\-–—]+(.+)/);
-  if (m3) return { num: parseInt(m3[1]), title: m3[2].trim() };
-  return null;
-}
-
-function buildEpImagesMap(eps) {
   epImages = {};
-  if (!eps || !eps.length) return;
-  eps.forEach(function(ep) {
-    if (!ep.thumbnail) return;
-    var p = parseStreamEp(ep.title);
-    if (p && p.num && !epImages[p.num]) epImages[p.num] = { thumb: ep.thumbnail, title: p.title };
+
+  if (media.airingSchedule && media.airingSchedule.nodes) {
+    media.airingSchedule.nodes.forEach(function (item) {
+      epDates[item.episode] = unixDate(item.airingAt);
+    });
+  }
+
+  (media.streamingEpisodes || []).forEach(function (episode, index) {
+    var raw = (episode.title || '').trim();
+    var match = raw.match(/(?:episode|ep\.?)\s*(\d+)[\s:·\-–—]*(.*)/i) ||
+      raw.match(/^(\d+)[\s:·\-–—]*(.*)/);
+    var number = match ? parseInt(match[1], 10) : index + 1;
+    var episodeTitle = match && match[2] ? match[2].trim() : raw;
+    if (!epImages[number]) {
+      epImages[number] = {
+        thumb: episode.thumbnail || '',
+        title: episodeTitle.replace(/^episode\s*\d+[\s:·\-–—]*/i, '')
+      };
+    }
   });
 }
 
-function buildEpCard(n, total, active, poster) {
-  var date    = epDates[n] || '';
-  var epData  = epImages[n] || {};
-  var thumb   = epData.thumb || poster;
-  var hasReal = !!epData.thumb;
-  var epTitle = epData.title ? 'Episode '+n+': '+escH(epData.title) : 'Episode '+n;
-  var fb      = escH(poster);
+function episodeTitle(number, mediaTitle) {
+  var item = epImages[number] || {};
+  return item.title ? 'Episode ' + number + ': ' + item.title : 'Episode ' + number + ': ' + mediaTitle;
+}
+
+function episodeDescription(number, mediaTitle) {
+  var item = epImages[number] || {};
+  if (item.title) return 'Watch ' + item.title + ' from ' + mediaTitle + '.';
+  return 'Continue ' + mediaTitle + ' with episode ' + number + '.';
+}
+
+function totalEpisodes(media) {
+  return media.episodes || (media.nextAiringEpisode ? Math.max(1, media.nextAiringEpisode.episode - 1) : 50);
+}
+
+function availableEpisodes(media) {
+  var total = totalEpisodes(media);
+  return media.nextAiringEpisode ? Math.min(total, Math.max(1, media.nextAiringEpisode.episode - 1)) : total;
+}
+
+function rangeEnd(total) {
+  return Math.min(currentRangeStart + EP_CHUNK - 1, total);
+}
+
+function buildRangeControl(total) {
+  if (total <= EP_CHUNK) {
+    return '<div class="mw-range-static">1 - ' + total + '</div>';
+  }
+
+  var options = '';
+  for (var start = 1; start <= total; start += EP_CHUNK) {
+    var end = Math.min(start + EP_CHUNK - 1, total);
+    options += '<option value="' + start + '"' + (start === currentRangeStart ? ' selected' : '') + '>' + start + ' - ' + end + '</option>';
+  }
+  return '<select class="mw-range-select" id="rangeSelect" aria-label="Episode range">' + options + '</select>';
+}
+
+function buildEpisodeCard(number, poster, mediaTitle) {
+  var item = epImages[number] || {};
+  var image = item.thumb || poster;
+  var title = episodeTitle(number, mediaTitle);
+  var description = episodeDescription(number, mediaTitle);
+  var date = epDates[number] || '';
+  return (
+    '<button class="mw-episode-item' + (number === watchEp ? ' active' : '') + '" id="episode-' + number + '" data-ep="' + number + '" type="button">' +
+      '<span class="mw-episode-thumb">' +
+        '<img src="' + escH(image) + '" alt="' + escH(mediaTitle) + ' Episode ' + number + '" loading="lazy">' +
+        '<strong>EP ' + number + '</strong>' +
+      '</span>' +
+      '<span class="mw-episode-copy">' +
+        '<span class="mw-episode-title">' + escH(title) + '</span>' +
+        '<span class="mw-episode-description">' + escH(description) + '</span>' +
+        '<span class="mw-episode-meta"><i class="fa-solid fa-closed-captioning"></i><time>' + escH(date) + '</time></span>' +
+      '</span>' +
+    '</button>'
+  );
+}
+
+function buildEpisodeList(total, poster, mediaTitle) {
+  var html = '';
+  var end = rangeEnd(total);
+  for (var number = currentRangeStart; number <= end; number++) {
+    html += buildEpisodeCard(number, poster, mediaTitle);
+  }
+  return html;
+}
+
+function buildRecommendations(recommendations) {
+  if (!recommendations || !recommendations.nodes) return '';
+  var items = recommendations.nodes.map(function (item) {
+    return item.mediaRecommendation;
+  }).filter(function (media) {
+    return media && media.type === 'ANIME';
+  }).slice(0, 8);
+
+  if (!items.length) return '';
 
   return (
-    '<div class="wep-card'+(active?' active':'')+'" id="sep-'+n+'" data-ep="'+n+'">' +
-      '<div class="wep-thumb'+(hasReal?' has-real':'')+'">' +
-        '<img src="'+escH(thumb)+'" alt="Ep '+n+'" loading="lazy" onerror="if(this.src!==\''+fb+'\')this.src=\''+fb+'\'">'+
-        '<span class="wep-badge">EP '+n+'</span>' +
+    '<section class="mw-recommendations">' +
+      '<h2><i class="fa-solid fa-chevron-right"></i> RECOMMENDATIONS</h2>' +
+      '<div class="mw-rec-list">' +
+        items.map(function (media) {
+          var title = getTitle(media);
+          var cover = media.coverImage && media.coverImage.large;
+          var banner = media.bannerImage || cover;
+          var format = (media.format || 'TV').replace(/_/g, ' ');
+          var score = media.averageScore ? Math.round(media.averageScore) : '';
+          return (
+            '<a class="mw-rec-card" href="watch.html?id=' + media.id + '&ep=1&lang=sub">' +
+              '<span class="mw-rec-backdrop" style="background-image:url(\'' + escH(banner) + '\')"></span>' +
+              '<img src="' + escH(cover) + '" alt="' + escH(title) + '">' +
+              '<span class="mw-rec-copy">' +
+                '<span class="mw-rec-title"><i></i>' + escH(title) + '</span>' +
+                '<span class="mw-rec-meta"><b>' + escH(format) + '</b>' +
+                  (media.episodes ? '<b><i class="fa-solid fa-closed-captioning"></i> ' + media.episodes + '</b>' : '') +
+                  (score ? '<b><i class="fa-regular fa-star"></i> ' + score + '</b>' : '') +
+                '</span>' +
+              '</span>' +
+            '</a>'
+          );
+        }).join('') +
       '</div>' +
-      '<div class="wep-body">' +
-        '<div class="wep-title">'+epTitle+'</div>' +
-        '<div class="wep-foot">' +
-          (date ? '<span class="wep-date">'+date+'</span>' : '') +
-        '</div>' +
-      '</div>' +
+      '<button class="mw-rec-more" type="button" aria-label="Show more recommendations"><i class="fa-solid fa-chevron-down"></i></button>' +
+    '</section>'
+  );
+}
+
+function buildNextAiring(nextAiringEpisode) {
+  if (!nextAiringEpisode || nextAiringEpisode.timeUntilAiring <= 0) return '';
+  var seconds = nextAiringEpisode.timeUntilAiring;
+  var days = Math.floor(seconds / 86400);
+  var hours = Math.floor((seconds % 86400) / 3600);
+  var minutes = Math.floor((seconds % 3600) / 60);
+  var countdown = (days ? days + 'd ' : '') + (hours ? hours + 'h ' : '') + (!days ? minutes + 'm' : '');
+  return (
+    '<div class="mw-next-airing">' +
+      '<i class="fa-solid fa-bell"></i>' +
+      '<strong>Episode ' + nextAiringEpisode.episode + ' in ' + countdown.trim() + '</strong>' +
+      '<span>· ' + unixDate(nextAiringEpisode.airingAt) + '</span>' +
     '</div>'
   );
 }
 
-function buildRangeBtns(total, chunk) {
-  var html = '';
-  for (var s = 1; s <= total; s += chunk) {
-    var e   = Math.min(s + chunk - 1, total);
-    var cur = watchEp >= s && watchEp <= e;
-    html += '<button class="wep-range'+(cur?' active':'')+'" data-start="'+s+'" data-end="'+e+'">'+s+' - '+e+'</button>';
-  }
-  return html;
+function buildPromo() {
+  return (
+    '<div class="mw-promo" aria-label="HEBiANiME promotion">' +
+      '<span class="mw-promo-plane"><i class="fa-solid fa-paper-plane"></i></span>' +
+      '<span><small>ONLY ON</small><strong>HEBiANiME</strong></span>' +
+      '<b>STREAM<br>THE BEST</b>' +
+      '<em>WATCH NOW</em>' +
+    '</div>'
+  );
 }
 
-function buildEpListHtml(total, poster, start, end) {
-  var count = total || 50;
-  start = start || 1; end = end || count;
-  var html = '';
-  for (var i = start; i <= end; i++) html += buildEpCard(i, total, i === watchEp, poster);
-  return html;
-}
 
-/* ── Sidebar recommendations ── */
-function buildSidebarRecs(recs) {
-  if (!recs || !recs.nodes) return '';
-  var items = recs.nodes.filter(function(r) {
-    return r.mediaRecommendation && r.mediaRecommendation.type === 'ANIME';
+var SEASON_FORMATS = ['TV', 'TV_SHORT', 'OVA', 'ONA', 'MOVIE', 'SPECIAL'];
+
+function seasonPrequel(edges) {
+  return (edges || []).find(function(e) {
+    return e.relationType === 'PREQUEL' && e.node && e.node.type === 'ANIME' &&
+      SEASON_FORMATS.indexOf(e.node.format) !== -1;
   });
-  if (!items.length) return '';
-  var cards = items.map(function(r) {
-    var m   = r.mediaRecommendation;
-    var t   = (m.title && (m.title.english || m.title.romaji)) || 'Unknown';
-    var img = m.bannerImage || (m.coverImage && m.coverImage.large);
-    var sc  = m.averageScore || 0;
-    var fmt = (m.format || 'TV').replace(/_/g,' ');
-    var eps = m.episodes || '';
-    return '<div class="wp-srec" onclick="location.href=\'anime.html?id='+m.id+'\'">' +
-      '<div class="wp-srec-img-wrap">' +
-        (img ? '<img src="'+escH(img)+'" alt="'+escH(t)+'" loading="lazy">' : '') +
-      '</div>' +
-      '<div class="wp-srec-body">' +
-        '<span class="wp-srec-dot"></span>' +
-        '<div class="wp-srec-info">' +
-          '<div class="wp-srec-title">'+escH(t)+'</div>' +
-          '<div class="wp-srec-meta">'+
-            '<span>'+escH(fmt)+'</span>'+
-            (eps?'<span><i class="fa-solid fa-tv"></i> '+eps+'</span>':'')+
-            (sc?'<span><i class="fa-solid fa-star"></i> '+Math.round(sc/10)+'</span>':'')+
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
+}
+
+function seasonSequel(edges, seen) {
+  return (edges || []).find(function(e) {
+    return e.relationType === 'SEQUEL' && e.node && e.node.type === 'ANIME' &&
+      SEASON_FORMATS.indexOf(e.node.format) !== -1 && !seen[e.node.id];
+  });
+}
+
+async function buildSeasonChain(media) {
+  var root = media;
+  for (var b = 0; b < 6; b++) {
+    var pq = seasonPrequel((root.relations && root.relations.edges) || []);
+    if (!pq) break;
+    try { root = await getAnimeRelations(pq.node.id); } catch(e) { break; }
+  }
+
+  var chain = [];
+  var seen = {};
+  var cur = root;
+  for (var f = 0; f < 10; f++) {
+    if (!cur || seen[cur.id]) break;
+    seen[cur.id] = true;
+    chain.push({
+      id: cur.id,
+      title: cur.title ? (cur.title.english || cur.title.romaji || '') : '',
+      isCurrent: cur.id === parseInt(watchId, 10)
+    });
+    var sq = seasonSequel((cur.relations && cur.relations.edges) || [], seen);
+    if (!sq) break;
+    try { cur = await getAnimeRelations(sq.node.id); } catch(e) { break; }
+  }
+
+  return chain.length > 1 ? chain : null;
+}
+
+function renderSeasonBar(chain) {
+  var bar = document.getElementById('seasonBar');
+  if (!bar || !chain) return;
+  bar.innerHTML = chain.map(function(s, i) {
+    return '<a class="mw-season-btn' + (s.isCurrent ? ' active' : '') + '" href="watch.html?id=' + s.id + '&ep=1&lang=' + escH(watchLang) + '" title="' + escH(s.title) + '">S' + (i + 1) + '</a>';
   }).join('');
-  return '<div class="wp-sidebar-recs">'+
-    '<div class="wp-srec-hd"><i class="fa-solid fa-chevron-right"></i> RECOMMENDATIONS</div>'+
-    cards+
-  '</div>';
 }
 
-/* ── Next episode countdown ── */
-function buildNextAiring(nae) {
-  if (!nae || nae.timeUntilAiring <= 0) return '';
-  var secs = nae.timeUntilAiring;
-  var d = Math.floor(secs / 86400);
-  var h = Math.floor((secs % 86400) / 3600);
-  var m = Math.floor((secs % 3600) / 60);
-  var timeStr = (d ? d+'d ' : '') + (h ? h+'h ' : '') + ((!d && h < 2) ? m+'m' : '');
-  var dateStr = tsToShort(nae.airingAt);
-  return '<div class="wp-next-air">'+
-    '<i class="fa-solid fa-clock"></i> '+
-    'Episode '+nae.episode+' in <strong>'+timeStr.trim()+'</strong>'+
-    (dateStr ? ' · '+dateStr : '')+
-  '</div>';
-}
-
-/* ── Main render ── */
 function renderWatch(media) {
   var title = getTitle(media);
-  document.title = 'Ep '+watchEp+' — '+title+' — AniStream';
-
-  buildEpDatesMap(media.airingSchedule);
-  buildEpImagesMap(media.streamingEpisodes);
-
-  var poster   = media.coverImage.extraLarge || media.coverImage.large;
-  var total    = media.episodes || (media.nextAiringEpisode ? media.nextAiringEpisode.episode-1 : null);
-  var status   = formatStatus(media.status);
-  var format   = (media.format||'TV').replace(/_/g,' ');
-  var studios  = media.studios&&media.studios.nodes ? media.studios.nodes.map(function(s){return s.name;}).join(', ') : '—';
-  var genres   = (media.genres||[]).slice(0,2);
-  var desc     = (media.description||'').replace(/<[^>]*>/g,'');
-  var startD   = fmtDate(media.startDate);
-  var endD     = fmtDate(media.endDate);
-  var season   = media.season ? media.season[0]+media.season.slice(1).toLowerCase() : '—';
-  var country  = media.countryOfOrigin || '';
-  var rawScore = media.averageScore || 0;
-  var useRange = total && total > 20;
-  var chunk    = 20;
-  var rStart   = useRange ? Math.floor((watchEp-1)/chunk)*chunk+1 : 1;
-  var rEnd     = useRange ? Math.min(rStart+chunk-1, total) : (total||50);
-
-  var curEpData  = epImages[watchEp] || {};
-  var curEpTitle = curEpData.title || '';
-
-  /* official site */
+  var poster = media.coverImage.extraLarge || media.coverImage.large;
+  var seriesTotal = totalEpisodes(media);
+  var total = availableEpisodes(media);
+  var description = stripHtml(media.description);
+  var episodeData = epImages[watchEp] || {};
+  var currentTitle = episodeData.title || title;
+  var status = formatStatus(media.status);
+  var studios = media.studios && media.studios.nodes && media.studios.nodes.length
+    ? media.studios.nodes.map(function (studio) { return studio.name; }).join(', ')
+    : '—';
+  var aired = media.nextAiringEpisode ? Math.max(0, media.nextAiringEpisode.episode - 1) : total;
+  var season = media.season ? titleCase(media.season) : '—';
+  var romaji = media.title && media.title.romaji && media.title.romaji !== title ? media.title.romaji : '';
+  var genres = (media.genres || []).slice(0, 3);
+  var episodeDate = epDates[watchEp] || fmtDate(media.startDate, true);
   var officialSite = '';
+
   if (media.externalLinks) {
-    var sl = media.externalLinks.filter(function(l){ return l.site==='Official Site'; })[0];
-    if (sl) officialSite = sl.url;
+    var official = media.externalLinks.filter(function (link) { return link.site === 'Official Site'; })[0];
+    if (official) officialSite = official.url;
   }
 
-  /* streaming ext links */
-  var streamLinks = '';
-  if (media.externalLinks) {
-    var sl2 = media.externalLinks.filter(function(l){ return l.type==='STREAMING'; }).slice(0,3);
-    if (sl2.length) streamLinks = '<div class="wp-extlinks">'+
-      sl2.map(function(l){ return '<a class="wp-extlink" href="'+escH(l.url)+'" target="_blank" rel="noopener"><i class="fa-solid fa-play"></i> '+escH(l.site)+'</a>'; }).join('')+
-    '</div>';
-  }
+  currentRangeStart = Math.floor((watchEp - 1) / EP_CHUNK) * EP_CHUNK + 1;
+  document.title = 'Ep ' + watchEp + ' — ' + title + ' — HEBiANiME';
+
+  var watchCanon = 'https://hebianime.com/watch.html?id=' + watchId + '&ep=' + watchEp + '&lang=' + watchLang;
+  var watchDesc = 'Watch ' + title + ' Episode ' + watchEp + ' in HD on HEBiANiME. Stream subbed and dubbed anime free.';
+  var watchCover = (media.coverImage && (media.coverImage.extraLarge || media.coverImage.large)) || '';
+  function setWM(id, attr, val) { var e = document.getElementById(id); if (e) e.setAttribute(attr, val); }
+  setWM('meta-desc', 'content', watchDesc);
+  setWM('canonical', 'href', watchCanon);
+  setWM('og-title', 'content', title + ' Ep ' + watchEp + ' — HEBiANiME');
+  setWM('og-desc', 'content', watchDesc);
+  setWM('og-image', 'content', watchCover);
+  setWM('og-url', 'content', watchCanon);
+  setWM('tw-title', 'content', title + ' Ep ' + watchEp + ' — HEBiANiME');
+  setWM('tw-desc', 'content', watchDesc);
+  setWM('tw-image', 'content', watchCover);
+
+  (function injectWatchSchemas() {
+    ['ld-video', 'ld-breadcrumb'].forEach(function(id) {
+      var old = document.getElementById(id);
+      if (old) old.remove();
+    });
+
+    var videoScript = document.createElement('script');
+    videoScript.type = 'application/ld+json';
+    videoScript.id = 'ld-video';
+    var videoObj = {
+      '@context': 'https://schema.org',
+      '@type': 'VideoObject',
+      'name': title + ' Episode ' + watchEp,
+      'description': watchDesc,
+      'thumbnailUrl': watchCover,
+      'uploadDate': episodeDate || fmtDate(media.startDate, true),
+      'embedUrl': 'https://hebianime.com/watch.html?id=' + watchId + '&ep=' + watchEp,
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'HEBiANiME',
+        'url': 'https://hebianime.com',
+        'logo': { '@type': 'ImageObject', 'url': 'https://hebianime.com/logo.svg' }
+      }
+    };
+    videoScript.text = JSON.stringify(videoObj);
+    document.head.appendChild(videoScript);
+
+    var bcScript = document.createElement('script');
+    bcScript.type = 'application/ld+json';
+    bcScript.id = 'ld-breadcrumb';
+    bcScript.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://hebianime.com/' },
+        { '@type': 'ListItem', 'position': 2, 'name': title, 'item': 'https://hebianime.com/anime.html?id=' + watchId },
+        { '@type': 'ListItem', 'position': 3, 'name': 'Episode ' + watchEp, 'item': watchCanon }
+      ]
+    });
+    document.head.appendChild(bcScript);
+  })();
 
   main.innerHTML =
-  '<div class="wp-wrap">'+
+    '<div class="mw-shell">' +
+      '<div class="mw-bookmark" id="bookmarkNotice">' +
+        '<i class="fa-solid fa-bookmark"></i>' +
+        '<span>Bookmark <strong>HEBiANiME</strong> so you never lose us.</span>' +
+        '<button id="bookmarkClose" type="button" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>' +
+      '</div>' +
 
-  /* ══ LEFT MAIN ══ */
-  '<div class="wp-main">'+
+      '<div class="mw-top-grid">' +
+        '<div class="mw-player">' +
+          '<iframe id="playerIframe" src="' + escH(getStreamUrl(watchId, watchEp, watchLang)) + '" title="' + escH(title) + ' episode ' + watchEp + '" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>' +
+        '</div>' +
+        '<aside class="mw-episodes">' +
+          '<div class="mw-season-bar" id="seasonBar"></div>' +
+          '<div class="mw-episode-controls">' +
+            buildRangeControl(total) +
+            '<label class="mw-episode-filter"><i class="fa-solid fa-magnifying-glass"></i><input id="epFilter" type="search" placeholder="Filter episodes..." autocomplete="off"></label>' +
+            '<button id="spoilerToggle" type="button" aria-label="Toggle spoilers" title="Toggle spoilers"><i class="fa-solid fa-eye"></i></button>' +
+            '<button id="imageToggle" type="button" aria-label="Toggle episode images" title="Toggle episode images"><i class="fa-solid fa-image"></i></button>' +
+          '</div>' +
+          '<div class="mw-episode-list" id="epList">' + buildEpisodeList(total, poster, title) + '</div>' +
+          buildNextAiring(media.nextAiringEpisode) +
+        '</aside>' +
+      '</div>' +
 
-    /* title bar */
-    '<div class="wp-bar">'+
-      '<div class="wp-bar-left">'+
-        '<span class="wp-ep-num" id="epNumEl">'+watchEp+'.</span>'+
-        '<span class="wp-ep-name" id="epNameEl">'+escH(curEpTitle || title)+'</span>'+
-      '</div>'+
-      '<div class="wp-bar-right">'+
-        '<div class="wp-lang-seg">'+
-          '<button class="wp-lbtn'+(watchLang==='sub'?' on':'')+'" id="subBtn"><i class="fa-solid fa-closed-captioning"></i> Sub <i class="fa-solid fa-sort"></i></button>'+
-          '<button class="wp-lbtn'+(watchLang==='dub'?' on':'')+'" id="dubBtn">Dub <i class="fa-solid fa-sort"></i></button>'+
-        '</div>'+
-      '</div>'+
-    '</div>'+
+      '<div class="mw-content-grid">' +
+        '<div class="mw-primary">' +
+          '<section class="mw-current-episode">' +
+            '<div class="mw-current-top">' +
+              '<h1 id="currentEpHeading">' + watchEp + '. ' + escH(currentTitle) + '</h1>' +
+              '<div class="mw-source-controls">' +
+                '<button class="mw-source-btn" id="subBtn" type="button"><i class="fa-solid fa-closed-captioning"></i><span id="langLabel">' + (watchLang === 'dub' ? 'Dub' : 'Sub') + '</span><i class="fa-solid fa-sort"></i></button>' +
+                '<button class="mw-source-btn" type="button"><i class="fa-solid fa-bolt"></i> mega <i class="fa-solid fa-sort"></i></button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="mw-episode-actions">' +
+              '<div class="mw-episode-pills">' +
+                '<span id="currentEpDate">' + escH(episodeDate) + '</span>' +
+                '<span><i class="fa-solid fa-closed-captioning"></i> <b id="currentEpCount">' + watchEp + '</b></span>' +
+                '<span><i class="fa-solid fa-microphone"></i> 0</span>' +
+              '</div>' +
+              '<div class="mw-action-buttons">' +
+                '<button id="prevEpBtn" type="button"' + (watchEp <= 1 ? ' disabled' : '') + ' aria-label="Previous episode"><i class="fa-solid fa-backward-step"></i></button>' +
+                '<button id="nextEpBtn" type="button"' + (watchEp >= total ? ' disabled' : '') + ' aria-label="Next episode"><i class="fa-solid fa-forward-step"></i></button>' +
+                '<button type="button"><i class="fa-solid fa-bug"></i> Report</button>' +
+                '<button id="downloadBtn" type="button"><i class="fa-solid fa-download"></i> Download</button>' +
+                '<button id="shareBtn" type="button"><i class="fa-solid fa-share-nodes"></i> Share</button>' +
+              '</div>' +
+            '</div>' +
+            '<p id="currentEpDescription">' + escH(episodeDescription(watchEp, title)) + '</p>' +
+          '</section>' +
 
-    /* player */
-    '<div class="wp-player"><iframe id="playerIframe" src="'+escH(getStreamUrl(watchId,watchEp,watchLang))+'" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe></div>'+
+          '<section class="mw-anime-card">' +
+            '<div class="mw-anime-poster-col">' +
+              '<img class="mw-anime-poster" src="' + escH(poster) + '" alt="' + escH(title) + '">' +
+              '<div class="mw-poster-actions">' +
+                (media.trailer && media.trailer.id
+                  ? '<a href="https://www.youtube.com/watch?v=' + escH(media.trailer.id) + '" target="_blank" rel="noopener">TRAILER</a>'
+                  : '<span>NO TRAILER</span>') +
+                '' +
+              '</div>' +
+              '<div class="mw-list-links">' +
+                '<a href="https://anilist.co/anime/' + watchId + '" target="_blank" rel="noopener">AL</a>' +
+                (media.idMal ? '<a href="https://myanimelist.net/anime/' + media.idMal + '" target="_blank" rel="noopener">MAL</a>' : '') +
+              '</div>' +
+            '</div>' +
+            '<div class="mw-anime-copy">' +
+              '<span class="mw-anime-title">' + escH(title) + '</span>' +
+              (romaji ? '<em>' + escH(romaji) + '</em>' : '') +
+              '<div class="mw-genres">' + genres.map(function (genre) { return '<span>' + escH(genre) + '</span>'; }).join('') + '</div>' +
+              (description ? '<p class="mw-anime-description">' + escH(description) + '</p>' : '') +
+              '<div class="mw-anime-facts">' +
+                '<div><span>Format:</span><strong>' + escH((media.format || 'TV').replace(/_/g, ' ')) + '</strong></div>' +
+                '<div><span>Start Date:</span><strong>' + fmtDate(media.startDate, false) + '</strong></div>' +
+                '<div><span>Status:</span><strong>' + escH(status) + '</strong></div>' +
+                '<div><span>End Date:</span><strong>' + fmtDate(media.endDate, false) + '</strong></div>' +
+                '<div><span>Episodes:</span><strong>' + aired + ' / ' + seriesTotal + '</strong></div>' +
+                '<div><span>Country:</span><strong>' + escH(media.countryOfOrigin || '—') + '</strong></div>' +
+                '<div><span>Rating:</span><strong>' + (media.averageScore || '—') + ' <small>/100</small></strong></div>' +
+                '<div><span>Adult:</span><strong>' + (media.isAdult ? 'Yes' : 'No') + '</strong></div>' +
+                '<div><span>Duration:</span><strong>' + (media.duration ? media.duration + ' min' : '—') + '</strong></div>' +
+                '<div><span>Studios:</span><strong>' + escH(studios) + '</strong></div>' +
+                '<div><span>Season:</span><strong>' + escH(season) + '</strong></div>' +
+                (officialSite ? '<div><span>Official Site:</span><strong><a href="' + escH(officialSite) + '" target="_blank" rel="noopener">' + escH(officialSite.replace(/^https?:\/\/(www\.)?/, '').replace(/\/.*$/, '')) + '</a></strong></div>' : '') +
+              '</div>' +
+            '</div>' +
+          '</section>' +
 
-    /* info bar */
-    '<div class="wp-info">'+
-      '<div class="wp-pills">'+
-        (startD!=='—'?'<span class="wp-pill"><i class="fa-solid fa-calendar-days"></i> '+startD+'</span>':'')+
-        (total?'<span class="wp-pill"><i class="fa-solid fa-film"></i> '+total+'</span>':'')+
-        '<span class="wp-pill"><i class="fa-solid fa-microphone-lines"></i> 0</span>'+
-      '</div>'+
-      '<div class="wp-acts" id="wpActs">'+
-        (watchEp>1?'<button class="wp-act-nav" id="prevEpBtn"><i class="fa-solid fa-backward-step"></i></button>':'')+
-        (total===null||watchEp<total?'<button class="wp-act-nav" id="nextEpBtn"><i class="fa-solid fa-forward-step"></i></button>':'')+
-        '<button class="wp-act"><i class="fa-solid fa-flag"></i><span class="act-lbl"> Report</span></button>'+
-        '<button class="wp-act"><i class="fa-solid fa-download"></i><span class="act-lbl"> Download</span></button>'+
-        '<button class="wp-act"><i class="fa-solid fa-share-nodes"></i><span class="act-lbl"> Share</span></button>'+
-      '</div>'+
-    '</div>'+
+        '</div>' +
 
-    /* next airing countdown */
-    buildNextAiring(media.nextAiringEpisode)+
+        '<aside class="mw-secondary">' +
+          buildPromo() +
+          buildRecommendations(media.recommendations) +
+        '</aside>' +
+      '</div>' +
+    '</div>';
 
-    /* streaming links */
-    streamLinks+
-
-    /* anime info card */
-    '<div class="wp-card">'+
-      /* left: poster + buttons */
-      '<div class="wp-card-left">'+
-        '<img class="wp-poster" src="'+escH(poster)+'" alt="'+escH(title)+'" onclick="location.href=\'anime.html?id='+watchId+'\'">'+
-        '<div class="wp-poster-btns">'+
-          (media.trailer&&media.trailer.id ?
-            '<a class="wp-trailer-btn" href="https://www.youtube.com/watch?v='+escH(media.trailer.id)+'" target="_blank" rel="noopener">TRAILER</a>' :
-            '<span class="wp-trailer-btn wp-trailer-no">NO TRAILER</span>')+
-          '<a class="wp-add-btn" href="anime.html?id='+watchId+'" title="Details"><i class="fa-solid fa-plus"></i></a>'+
-        '</div>'+
-        '<div class="wp-src-links">'+
-          '<a class="wp-src-link wp-al" href="https://anilist.co/anime/'+watchId+'" target="_blank">AL.</a>'+
-          (media.idMal?'<a class="wp-src-link wp-mal" href="https://myanimelist.net/anime/'+media.idMal+'" target="_blank">MAL</a>':'')+
-        '</div>'+
-      '</div>'+
-      /* right: info */
-      '<div class="wp-card-right">'+
-        '<div class="wp-ctitle" onclick="location.href=\'anime.html?id='+watchId+'\'">'+escH(title)+'</div>'+
-        (media.title&&media.title.native?'<div class="wp-cnative">'+escH(media.title.native)+'</div>':'')+
-        (genres.length?'<div class="wp-cgenres">'+genres.map(function(g){return'<span class="wp-ctag">'+escH(g)+'</span>';}).join('')+'</div>':'')+
-        (desc?'<div class="wp-cdesc">'+escH(desc.slice(0,300))+(desc.length>300?'…':'')+'</div>':'')+
-        '<div class="wp-dg">'+
-          '<div class="wp-dr"><span>Format</span><strong>'+escH(format)+'</strong></div>'+
-          '<div class="wp-dr"><span>Start Date</span><strong>'+startD+'</strong></div>'+
-          '<div class="wp-dr"><span>Status</span><strong>'+status+'</strong></div>'+
-          '<div class="wp-dr"><span>End Date</span><strong>'+endD+'</strong></div>'+
-          (total?'<div class="wp-dr"><span>Episodes</span><strong>'+(media.nextAiringEpisode?(media.nextAiringEpisode.episode-1)+' / '+total:total)+'</strong></div>':'')+
-          (country?'<div class="wp-dr"><span>Country</span><strong>'+escH(country)+'</strong></div>':'')+
-          (rawScore?'<div class="wp-dr"><span>Rating</span><strong>'+rawScore+' /100</strong></div>':'')+
-          '<div class="wp-dr"><span>Adult</span><strong>'+(media.isAdult?'Yes':'No')+'</strong></div>'+
-          (media.duration?'<div class="wp-dr"><span>Duration</span><strong>'+media.duration+' min</strong></div>':'')+
-          '<div class="wp-dr"><span>Studios</span><strong>'+escH(studios)+'</strong></div>'+
-          (season!=='—'?'<div class="wp-dr"><span>Season</span><strong>'+escH(season)+'</strong></div>':'')+
-          (officialSite?'<div class="wp-dr"><span>Official Site</span><strong><a class="wp-detail-link" href="'+escH(officialSite)+'" target="_blank">'+escH(officialSite.replace(/^https?:\/\/(www\.)?/,'').replace(/\/.*$/,''))+'</a></strong></div>':'')+
-        '</div>'+
-      '</div>'+
-    '</div>'+
-
-  '</div>'+/* /wp-main */
-
-  /* ══ RIGHT SIDEBAR ══ */
-  '<div class="wp-sidebar">'+
-
-    /* sticky episode section */
-    '<div class="wp-ep-section">'+
-      '<div class="wp-ep-controls">'+
-        (useRange?'<div class="wp-ranges" id="rangeBar">'+buildRangeBtns(total,chunk)+'</div>':'')+
-        '<div class="wp-ep-ctrl-row">'+
-          '<div class="wp-filter-wrap">'+
-            '<i class="fa-solid fa-magnifying-glass wp-fi"></i>'+
-            '<input class="wp-filter" id="epFilter" placeholder="Filter episodes…" autocomplete="off">'+
-          '</div>'+
-          '<button class="wp-view-btn" id="viewToggle" title="Grid/List view"><i class="fa-solid fa-grip" id="viewIcon"></i></button>'+
-        '</div>'+
-      '</div>'+
-      '<div class="wp-eplist" id="epList">'+
-        buildEpListHtml(total, poster, rStart, rEnd)+
-      '</div>'+
-    '</div>'+
-
-    /* recommendations below sticky section */
-    buildSidebarRecs(media.recommendations)+
-
-  '</div>'+/* /wp-sidebar */
-
-  '</div>';/* /wp-wrap */
-
-  attachEvents(total, poster, chunk);
-  scrollToEp();
+  attachEvents(total, poster, title);
 }
 
-/* ── Events ── */
-function attachEvents(total, poster, chunk) {
-  /* lang */
-  var sb = document.getElementById('subBtn');
-  var db = document.getElementById('dubBtn');
-  if (sb) sb.addEventListener('click', function(){ watchLang='sub'; reloadPlayer(total); });
-  if (db) db.addEventListener('click', function(){ watchLang='dub'; reloadPlayer(total); });
-
-  /* prev/next in info bar */
-  var pb = document.getElementById('prevEpBtn');
-  var nb = document.getElementById('nextEpBtn');
-  if (pb) pb.addEventListener('click', function(){ if(watchEp>1){watchEp--;reloadPlayer(total);} });
-  if (nb) nb.addEventListener('click', function(){ if(!total||watchEp<total){watchEp++;reloadPlayer(total);} });
-
-  /* episode cards */
-  var epList = document.getElementById('epList');
-  if (epList) epList.addEventListener('click', function(e) {
-    var card = e.target.closest('.wep-card');
-    if (card) { watchEp=parseInt(card.dataset.ep); reloadPlayer(total); }
-  });
-
-  /* range buttons */
-  var rb = document.getElementById('rangeBar');
-  if (rb) rb.addEventListener('click', function(e) {
-    var btn = e.target.closest('.wep-range');
-    if (!btn) return;
-    rb.querySelectorAll('.wep-range').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-    var epl = document.getElementById('epList');
-    if (epl) {
-      var wasGrid = epl.classList.contains('grid-mode');
-      epl.innerHTML = buildEpListHtml(total, poster, parseInt(btn.dataset.start), parseInt(btn.dataset.end));
-      if (wasGrid) epl.classList.add('grid-mode');
-      epl.addEventListener('click', epListClickHandler(total));
-    }
-    scrollToEp();
-  });
-
-  /* filter */
-  var flt = document.getElementById('epFilter');
-  if (flt) flt.addEventListener('input', function() {
-    var val = flt.value.toLowerCase();
-    document.querySelectorAll('.wep-card').forEach(function(c) {
-      var n = c.dataset.ep;
-      c.style.display = (!val||('episode '+n).includes(val)||n.includes(val)) ? '' : 'none';
-    });
-  });
-
-  /* grid/list toggle */
-  var vt   = document.getElementById('viewToggle');
-  var icon = document.getElementById('viewIcon');
-  var epl2 = document.getElementById('epList');
-  if (vt && epl2) {
-    var isGrid = localStorage.getItem('anistream:epView') === 'grid';
-    applyView(epl2, icon, isGrid);
-    vt.addEventListener('click', function() {
-      isGrid = !isGrid;
-      applyView(epl2, icon, isGrid);
-      localStorage.setItem('anistream:epView', isGrid ? 'grid' : 'list');
+function attachEvents(total, poster, mediaTitle) {
+  var bookmarkClose = document.getElementById('bookmarkClose');
+  if (bookmarkClose) {
+    bookmarkClose.addEventListener('click', function () {
+      document.getElementById('bookmarkNotice').remove();
     });
   }
+
+  document.getElementById('subBtn').addEventListener('click', function () {
+    watchLang = watchLang === 'sub' ? 'dub' : 'sub';
+    updateCurrentEpisode(total, mediaTitle);
+  });
+
+  document.getElementById('prevEpBtn').addEventListener('click', function () {
+    if (watchEp > 1) setEpisode(watchEp - 1, total, poster, mediaTitle);
+  });
+
+  document.getElementById('nextEpBtn').addEventListener('click', function () {
+    if (watchEp < total) setEpisode(watchEp + 1, total, poster, mediaTitle);
+  });
+
+  document.getElementById('epList').addEventListener('click', function (event) {
+    var card = event.target.closest('.mw-episode-item');
+    if (card) setEpisode(parseInt(card.dataset.ep, 10), total, poster, mediaTitle);
+  });
+
+  var rangeSelect = document.getElementById('rangeSelect');
+  if (rangeSelect) {
+    rangeSelect.addEventListener('change', function () {
+      currentRangeStart = parseInt(rangeSelect.value, 10);
+      document.getElementById('epList').innerHTML = buildEpisodeList(total, poster, mediaTitle);
+    });
+  }
+
+  document.getElementById('epFilter').addEventListener('input', function (event) {
+    var query = event.target.value.toLowerCase().trim();
+    document.querySelectorAll('.mw-episode-item').forEach(function (card) {
+      card.hidden = query && !card.textContent.toLowerCase().includes(query);
+    });
+  });
+
+  document.getElementById('spoilerToggle').addEventListener('click', function (event) {
+    document.querySelector('.mw-episodes').classList.toggle('spoilers-hidden');
+    event.currentTarget.classList.toggle('active');
+  });
+
+  document.getElementById('imageToggle').addEventListener('click', function (event) {
+    document.querySelector('.mw-episodes').classList.toggle('images-hidden');
+    event.currentTarget.classList.toggle('active');
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', function () {
+    window.open(getStreamUrl(watchId, watchEp, watchLang), '_blank', 'noopener');
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', function () {
+    var shareData = { title: document.title, url: location.href };
+    if (navigator.share) navigator.share(shareData).catch(function () {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(location.href);
+  });
 }
 
-function applyView(epl, icon, isGrid) {
-  epl.classList.toggle('grid-mode', isGrid);
-  if (icon) icon.className = isGrid ? 'fa-solid fa-list' : 'fa-solid fa-grip';
+function setEpisode(number, total, poster, mediaTitle) {
+  watchEp = number;
+  var neededRange = Math.floor((watchEp - 1) / EP_CHUNK) * EP_CHUNK + 1;
+  if (neededRange !== currentRangeStart) {
+    currentRangeStart = neededRange;
+    var select = document.getElementById('rangeSelect');
+    if (select) select.value = String(currentRangeStart);
+    document.getElementById('epList').innerHTML = buildEpisodeList(total, poster, mediaTitle);
+  }
+  updateCurrentEpisode(total, mediaTitle);
 }
 
-function epListClickHandler(total) {
-  return function(e) {
-    var card = e.target.closest('.wep-card');
-    if (card) { watchEp=parseInt(card.dataset.ep); reloadPlayer(total); }
-  };
-}
-
-/* ── Player reload ── */
-function reloadPlayer(total) {
+function updateCurrentEpisode(total, mediaTitle) {
+  var current = epImages[watchEp] || {};
+  var currentTitle = current.title || mediaTitle;
   var iframe = document.getElementById('playerIframe');
   if (iframe) iframe.src = getStreamUrl(watchId, watchEp, watchLang);
 
-  document.title = 'Ep '+watchEp+' — '+getTitle(watchData)+' — AniStream';
+  document.title = 'Ep ' + watchEp + ' — ' + mediaTitle + ' — HEBiANiME';
+  var epCanon = 'https://hebianime.com/watch.html?id=' + watchId + '&ep=' + watchEp + '&lang=' + watchLang;
+  var epDesc = 'Watch ' + mediaTitle + ' Episode ' + watchEp + ' in HD on HEBiANiME. Stream subbed and dubbed anime free.';
+  function setWMep(id, attr, val) { var e = document.getElementById(id); if (e) e.setAttribute(attr, val); }
+  setWMep('meta-desc', 'content', epDesc);
+  setWMep('canonical', 'href', epCanon);
+  setWMep('og-url', 'content', epCanon);
+  var epVideo = document.getElementById('ld-video');
+  if (epVideo) { try { var vo = JSON.parse(epVideo.text); vo.name = mediaTitle + ' Episode ' + watchEp; vo.description = epDesc; vo.embedUrl = epCanon; epVideo.text = JSON.stringify(vo); } catch(e){} }
+  var epBc = document.getElementById('ld-breadcrumb');
+  if (epBc) { try { var bc = JSON.parse(epBc.text); bc.itemListElement[2].name = 'Episode ' + watchEp; bc.itemListElement[2].item = epCanon; epBc.text = JSON.stringify(bc); } catch(e){} }
+  document.getElementById('currentEpHeading').textContent = watchEp + '. ' + currentTitle;
+  document.getElementById('currentEpDate').textContent = epDates[watchEp] || fmtDate(watchData.startDate, true);
+  document.getElementById('currentEpCount').textContent = watchEp;
+  document.getElementById('currentEpDescription').textContent = episodeDescription(watchEp, mediaTitle);
+  document.getElementById('langLabel').textContent = watchLang === 'dub' ? 'Dub' : 'Sub';
+  var previous = document.getElementById('prevEpBtn');
+  var next = document.getElementById('nextEpBtn');
+  previous.disabled = watchEp <= 1;
+  next.disabled = watchEp >= total;
 
-  var numEl  = document.getElementById('epNumEl');
-  var nameEl = document.getElementById('epNameEl');
-  if (numEl) numEl.textContent = watchEp+'.';
-  if (nameEl) {
-    var cur = epImages[watchEp] || {};
-    nameEl.textContent = cur.title || getTitle(watchData);
-  }
-
-  document.querySelectorAll('.wp-lbtn').forEach(function(b){
-    b.classList.toggle('on', b.id===(watchLang+'Btn'));
+  document.querySelectorAll('.mw-episode-item').forEach(function (card) {
+    card.classList.toggle('active', parseInt(card.dataset.ep, 10) === watchEp);
   });
-  document.querySelectorAll('.wep-card').forEach(function(el){
-    el.classList.toggle('active', parseInt(el.dataset.ep)===watchEp);
-  });
 
-  /* rebuild prev/next */
-  var acts = document.getElementById('wpActs');
-  if (acts) {
-    var nb = acts.querySelector('#nextEpBtn');
-    var pb = acts.querySelector('#prevEpBtn');
-    if (pb) pb.remove();
-    if (nb) nb.remove();
-    if (watchEp > 1) {
-      var prevBtn = document.createElement('button');
-      prevBtn.className='wp-act-nav'; prevBtn.id='prevEpBtn';
-      prevBtn.innerHTML='<i class="fa-solid fa-backward-step"></i>';
-      prevBtn.addEventListener('click', function(){ if(watchEp>1){watchEp--;reloadPlayer(total);} });
-      acts.prepend(prevBtn);
-    }
-    if (!total || watchEp < total) {
-      var nextBtn = document.createElement('button');
-      nextBtn.className='wp-act-nav'; nextBtn.id='nextEpBtn';
-      nextBtn.innerHTML='<i class="fa-solid fa-forward-step"></i>';
-      nextBtn.addEventListener('click', function(){ if(!total||watchEp<total){watchEp++;reloadPlayer(total);} });
-      if (acts.firstChild) acts.insertBefore(nextBtn, acts.firstChild.nextSibling);
-      else acts.prepend(nextBtn);
-    }
-  }
-
-  scrollToEp();
   updateUrl();
+  scrollEpisodeIntoView(true);
 }
 
-function scrollToEp() {
-  var el = document.getElementById('sep-'+watchEp);
-  if (el) el.scrollIntoView({ block:'center', behavior:'smooth' });
+function scrollEpisodeIntoView(smooth) {
+  var episode = document.getElementById('episode-' + watchEp);
+  var list = document.getElementById('epList');
+  if (episode && list) {
+    list.scrollTo({
+      top: episode.offsetTop - list.clientHeight / 2 + episode.clientHeight / 2,
+      behavior: smooth ? 'smooth' : 'auto'
+    });
+  }
 }
 
-/* ── Keyboard nav ── */
-document.addEventListener('keydown', function(e) {
-  if (!watchData || e.target.tagName==='INPUT') return;
-  var total = watchData.episodes;
-  if (e.key==='ArrowRight'&&(!total||watchEp<total)){ watchEp++; reloadPlayer(total); }
-  if (e.key==='ArrowLeft'&&watchEp>1){ watchEp--; reloadPlayer(total); }
+document.addEventListener('keydown', function (event) {
+  if (!watchData || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName)) return;
+  var total = availableEpisodes(watchData);
+  var poster = watchData.coverImage.extraLarge || watchData.coverImage.large;
+  var title = getTitle(watchData);
+  if (event.key === 'ArrowRight' && watchEp < total) setEpisode(watchEp + 1, total, poster, title);
+  if (event.key === 'ArrowLeft' && watchEp > 1) setEpisode(watchEp - 1, total, poster, title);
 });
 
-/* ── Boot ── */
-if (watchId) {
-  getAnimeById(watchId).then(function(media) {
+if (!watchId) {
+  main.innerHTML = '<div class="error-wrap" style="padding-top:120px"><h3>No anime selected</h3><a href="index.html" class="btn btn-primary" style="margin-top:14px">Go Home</a></div>';
+} else {
+  getAnimeById(watchId).then(function (media) {
     watchData = media;
+    buildEpisodeMaps(media);
     renderWatch(media);
-  }).catch(function(err) {
-    main.innerHTML = '<div class="error-wrap" style="padding-top:120px"><h3>Failed to load</h3><p>'+err.message+'</p><a class="btn btn-primary" href="index.html" style="margin-top:14px">Go Home</a></div>';
+    buildSeasonChain(media).then(renderSeasonBar).catch(function() {});
+  }).catch(function (error) {
+    main.innerHTML = '<div class="error-wrap" style="padding-top:120px"><h3>Failed to load</h3><p>' + escH(error.message) + '</p><a class="btn btn-primary" href="index.html" style="margin-top:14px">Go Home</a></div>';
   });
 }

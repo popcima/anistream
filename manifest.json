@@ -1,0 +1,27 @@
+{
+  "name": "HEBiANiME",
+  "short_name": "HEBiANiME",
+  "description": "Watch free anime online in HD — subbed and dubbed, no signup required.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#090910",
+  "theme_color": "#0B0B10",
+  "lang": "en",
+  "categories": ["entertainment"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg"
+    }
+  ]
+}

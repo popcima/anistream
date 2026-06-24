@@ -3,14 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Anime Details — AniStream</title>
+  <title>Anime Details — HEBiANiME</title>
+
+  <!-- SEO Core (updated dynamically by anime.js) -->
+  <meta id="meta-desc" name="description" content="Watch this anime in HD on HEBiANiME. Stream subbed and dubbed episodes free." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="HEBiANiME" />
+  <link id="canonical" rel="canonical" href="https://hebianime.com/anime.html" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="video.tv_show" />
+  <meta property="og:site_name" content="HEBiANiME" />
+  <meta id="og-title" property="og:title" content="Watch Anime — HEBiANiME" />
+  <meta id="og-desc" property="og:description" content="Watch this anime in HD on HEBiANiME." />
+  <meta id="og-image" property="og:image" content="https://hebianime.com/og-image.jpg" />
+  <meta property="og:image:width" content="460" />
+  <meta property="og:image:height" content="650" />
+  <meta id="og-url" property="og:url" content="https://hebianime.com/anime.html" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta id="tw-title" name="twitter:title" content="Watch Anime — HEBiANiME" />
+  <meta id="tw-desc" name="twitter:description" content="Watch this anime in HD on HEBiANiME." />
+  <meta id="tw-image" name="twitter:image" content="https://hebianime.com/og-image.jpg" />
+
+  <!-- PWA + App -->
+  <meta name="theme-color" content="#0B0B10" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="HEBiANiME" />
+  <link rel="manifest" href="/manifest.json" />
+
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@100..900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 68 68'><circle cx='34' cy='34' r='32' fill='%23090910'/><circle cx='34' cy='34' r='32' fill='none' stroke='%23BB0000' stroke-width='1.5'/><path d='M34,62C14,57 12,42 26,35C40,28 54,18 44,8' fill='none' stroke='%23CC1111' stroke-width='5.5' stroke-linecap='round'/><ellipse cx='42' cy='8' rx='7' ry='4.5' fill='%23EE2222' transform='rotate(-48 42 8)'/><circle cx='45.5' cy='6' r='1.8' fill='%23090910'/></svg>" />
+  <link rel="preconnect" href="https://graphql.anilist.co" />
+  <link rel="preconnect" href="https://s4.anilist.co" crossorigin />
+  <link rel="dns-prefetch" href="https://graphql.anilist.co" />
+  <link rel="dns-prefetch" href="https://s4.anilist.co" />
 </head>
 <body>
 
 <nav class="navbar">
-  <a class="nav-logo" href="index.html">ANISTREAM<em>.</em></a>
+  <a class="nav-logo" href="index.html">HEBiANiME</a>
   <div class="nav-search-wrap">
     <span class="nav-s-icon">⌕</span>
     <input type="text" id="navSearch" placeholder="Search Anime" autocomplete="off" />
@@ -31,7 +71,7 @@
 </main>
 
 <footer class="footer">
-  <p>Built with ❤️ using <span>AniStream</span> · Data from AniList · Streaming via MegaPlay</p>
+  <p>Built with ❤️ using <span>HEBiANiME</span> · Data from AniList · Streaming via MegaPlay</p>
 </footer>
 
 <script src="js/api.js"></script>
